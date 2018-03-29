@@ -2,10 +2,12 @@ package com.baby.project.projectbaby.process.widget;
 
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.support.annotation.ColorInt;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
@@ -28,9 +30,11 @@ import java.util.List;
  * Created by yosemite on 2018/3/15.
  */
 
-public class ProgressChart extends SurfaceView implements SurfaceHolder.Callback, Runnable {
+public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolder.Callback, Runnable {
 
-    private static final int MIN_REFRESH_MILLIS = 30;
+    private static final String TAG = "ProgressChart";
+
+    private static final int MIN_REFRESH_MILLIS = 50;
 
     private SurfaceHolder mSurfaceHolder;
     // 绘制所用画布
@@ -50,25 +54,27 @@ public class ProgressChart extends SurfaceView implements SurfaceHolder.Callback
 
     private TouchHelper mTouchHelper;
 
-    public ProgressChart(Context context) {
+    private Option mOption;
+
+    public ProcessChartSurfaceView(Context context) {
         super(context);
         initView();
     }
 
-    public ProgressChart(Context context, @Nullable AttributeSet attrs) {
+    public ProcessChartSurfaceView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
         initView();
     }
 
-    public ProgressChart(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
+    public ProcessChartSurfaceView(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         initView();
     }
 
     private void initView() {
-        Option option = Option.getDefaultOption();
-        mTouchHelper = new TouchHelper(getContext(), option);
-        mProcessChartPainter = new ProcessChartPainter(mTouchHelper, option);
+        mOption = Option.getDefaultOption();
+        mTouchHelper = new TouchHelper(getContext(), mOption);
+        mProcessChartPainter = new ProcessChartPainter(mTouchHelper, mOption);
         mSurfaceHolder = getHolder();
         mSurfaceHolder.addCallback(this); // 注册surfaceHolder的回调方法
         this.setFocusable(true);
@@ -78,6 +84,8 @@ public class ProgressChart extends SurfaceView implements SurfaceHolder.Callback
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
+        Log.e(TAG, "surfaceCreated:width-" + getWidth() + ",height-" + getHeight());
+
         mIsDrawing = true;
         mThread = new Thread(this);
         mThread.start();
@@ -85,55 +93,9 @@ public class ProgressChart extends SurfaceView implements SurfaceHolder.Callback
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-        GestureDetector gestureDetector = new GestureDetector(getContext(), new GestureDetector.OnGestureListener() {
-            @Override
-            public boolean onDown(MotionEvent e) {
-                return false;
-            }
-
-            @Override
-            public void onShowPress(MotionEvent e) {
-
-            }
-
-            @Override
-            public boolean onSingleTapUp(MotionEvent e) {
-                return false;
-            }
-
-            @Override
-            public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-                return false;
-            }
-
-            @Override
-            public void onLongPress(MotionEvent e) {
-
-            }
-
-            @Override
-            public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-                return false;
-            }
-        });
-
-        ScaleGestureDetector scaleGestureDetector = new ScaleGestureDetector(getContext(), new ScaleGestureDetector.OnScaleGestureListener() {
-            @Override
-            public boolean onScale(ScaleGestureDetector detector) {
-                return false;
-            }
-
-            @Override
-            public boolean onScaleBegin(ScaleGestureDetector detector) {
-                return false;
-            }
-
-            @Override
-            public void onScaleEnd(ScaleGestureDetector detector) {
-
-            }
-        });
-
+        Log.e(TAG, "surfaceChanged:width-" + width + ",height-" + height);
+        // 更新配置
+        mOption.calculateRealParams(width, height);
     }
 
     @Override
@@ -177,12 +139,15 @@ public class ProgressChart extends SurfaceView implements SurfaceHolder.Callback
     private void updateAndRender(long deltaMillis) {
         try {
             mCanvas = mSurfaceHolder.lockCanvas();
+            // clear canvas
+            mCanvas.drawColor(Color.WHITE);
+            mProcessChartPainter.drawHeaderBackground(mCanvas, mPaint);
+            mProcessChartPainter.drawLeftHeader(mCanvas, mPaint);
             // 尚未给数据 不用绘制
             if (null == this.project) {
-                return;
+//                return;
             }
-
-            mProcessChartPainter.drawChart(mCanvas, mPaint, this.project, this.processWrappers);
+//            mProcessChartPainter.drawChart(mCanvas, mPaint, this.project, this.processWrappers);
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -203,7 +168,6 @@ public class ProgressChart extends SurfaceView implements SurfaceHolder.Callback
     public static class Option {
 
         private static final String FIELD_TIME_BAR_DAY_WIDTH = "time_bar_day_width";
-        private static final String FIELD_TIME_BAR_ITEM_HEIGHT = "time_bar_item_height";
         private static final String FIELD_LEFT_COLUMN_WIDTH = "left_column_width";
         private static final String FIELD_RIGHT_COLUMN_WIDTH = "right_column_width";
         private static final String FIELD_CHART_HEADER_HEIGHT = "chart_header_height";
@@ -212,8 +176,10 @@ public class ProgressChart extends SurfaceView implements SurfaceHolder.Callback
         private static final String FIELD_PROCESS_NEED_LINE_HEIGHT = "process_need_line_height";
         private static final String FIELD_PROCESS_COMPLETE_LINE_HEIGHT = "process_complete_line_height";
         private static final String FIELD_TEXT_COLOR = "text_color";
+        private static final String FIELD_HEADER_TEXT_COLOR = "header_text_color";
         private static final String FIELD_LINE_COLOR = "line_color";
         private static final String FIELD_BACKGROUND_COLOR = "background_color";
+        private static final String FIELD_HEADER_LINE_COLOR = "header_line_color";
         private static final String FIELD_HEADER_BACKGROUND_COLOR = "header_background_color";
         private static final String FIELD_ODD_POSITION_BACKGROUND_COLOR = "odd_position_background_color";
         private static final String FIELD_EVEN_POSITION_BACKGROUND_COLOR = "even_position_background_color";
@@ -248,6 +214,16 @@ public class ProgressChart extends SurfaceView implements SurfaceHolder.Callback
         // TODO 组件宽度/高度获取
         // TODO time bar width 计算 (由上一步结果影响)
         // TODO process list height 计算 (由上一步结果影响)
+        public void calculateRealParams(int width, int height) {
+            this.width = width;
+            this.height = height;
+            this.timeBarWidth = width - this.leftColumnWidth - this.rightColumnWidth;
+            this.processListHeight = height - this.chartHeaderHeight;
+        }
+
+        public float width;
+
+        public float height;
 
         /**
          * header
@@ -257,18 +233,14 @@ public class ProgressChart extends SurfaceView implements SurfaceHolder.Callback
         @SerializedName(FIELD_TIME_BAR_DAY_WIDTH)
         public float timeBarDayWidth;
 
-        @SerializedName(FIELD_TIME_BAR_ITEM_HEIGHT)
-        public float timeBarItemHeight;
-
         @SerializedName(FIELD_LEFT_COLUMN_WIDTH)
-        public float leftColumnWidth;
+        public float leftColumnWidth = 60;
 
         @SerializedName(FIELD_RIGHT_COLUMN_WIDTH)
         public float rightColumnWidth;
 
         @SerializedName(FIELD_CHART_HEADER_HEIGHT)
-        public float chartHeaderHeight;
-
+        public float chartHeaderHeight = 50;
         /**
          * process list
          */
@@ -291,19 +263,27 @@ public class ProgressChart extends SurfaceView implements SurfaceHolder.Callback
          */
         @SerializedName(FIELD_TEXT_COLOR)
         public @ColorInt
-        int textColor;
+        int textColor = Color.BLACK;
+
+        @SerializedName(FIELD_HEADER_TEXT_COLOR)
+        public @ColorInt
+        int headerTextColor = Color.WHITE;
 
         @SerializedName(FIELD_LINE_COLOR)
         public @ColorInt
-        int lineColor;
+        int lineColor = Color.BLACK;
 
         @SerializedName(FIELD_BACKGROUND_COLOR)
         public @ColorInt
         int backgroundColor;
 
+        @SerializedName(FIELD_HEADER_LINE_COLOR)
+        public @ColorInt
+        int headerLineColor = Color.WHITE;
+
         @SerializedName(FIELD_HEADER_BACKGROUND_COLOR)
         public @ColorInt
-        int headerBackgroundColor;
+        int headerBackgroundColor = 0xFF1F1F26;
 
         @SerializedName(FIELD_ODD_POSITION_BACKGROUND_COLOR)
         public @ColorInt
@@ -350,10 +330,10 @@ public class ProgressChart extends SurfaceView implements SurfaceHolder.Callback
          * extra
          */
         @SerializedName(FIELD_LINE_WIDTH)
-        public float lineWidth;
+        public float lineWidth = 1.2f;
 
         @SerializedName(FIELD_HEADER_TEXT_SIZE)
-        public float headerTextSize;
+        public float headerTextSize = 13.0f;
 
         @SerializedName(FIELD_PROCESS_COMPLETE_TEXT_SIZE)
         public float processCompleteTextSize;
@@ -401,29 +381,33 @@ public class ProgressChart extends SurfaceView implements SurfaceHolder.Callback
         @Override
         void drawHeaderBackground(Canvas canvas, Paint paint) {
             paint.setColor(mOption.headerBackgroundColor);
-            canvas.drawRect(0f,0f,mOption.leftColumnWidth + mOption.timeBarWidth + mOption.rightColumnWidth,mOption.chartHeaderHeight,paint);
+            paint.setStyle(Paint.Style.FILL);
+            canvas.drawRect(0f, 0f, mOption.width, mOption.chartHeaderHeight, paint);
         }
 
         @Override
         void drawLeftHeader(Canvas canvas, Paint paint) {
             // border
-            drawBorder(canvas, paint, 0f, 0f, mOption.leftColumnWidth, mOption.chartHeaderHeight);
+            drawBorder(canvas, paint, 0f, 0f, mOption.leftColumnWidth, mOption.chartHeaderHeight,mOption.headerLineColor);
             // split line
             canvas.drawLine(0f, 0f, mOption.leftColumnWidth, mOption.chartHeaderHeight, paint);
             // bottom text
             float middleHeight = mOption.chartHeaderHeight * 0.5f;
             float middleWidth = mOption.leftColumnWidth * 0.5f;
-            paint.setTextAlign(Paint.Align.RIGHT);
-            paint.setColor(mOption.textColor);
+            float bottomTextX = middleWidth * 0.5f;
+            float topTextX = mOption.leftColumnWidth - middleWidth * 0.5f;
+            paint.setTextAlign(Paint.Align.CENTER);
+            paint.setColor(mOption.headerTextColor);
             paint.setTextSize(mOption.headerTextSize);
-            CanvasUtil.drawText(canvas,paint,mOption.leftColumnHeaderBottomText,middleWidth,middleHeight,CanvasUtil.BASELINE_MODE_TOP);
-            paint.setTextAlign(Paint.Align.LEFT);
-            CanvasUtil.drawText(canvas,paint,mOption.liftColumnHeaderTopText,middleWidth,middleHeight,CanvasUtil.BASELINE_MODE_BOTTOM);
-
+            CanvasUtil.drawText(canvas, paint, mOption.leftColumnHeaderBottomText, bottomTextX, middleHeight, CanvasUtil.BASELINE_MODE_BOTTOM);
+            CanvasUtil.drawText(canvas, paint, mOption.liftColumnHeaderTopText, topTextX, middleHeight, CanvasUtil.BASELINE_MODE_TOP);
         }
 
 
-        private void drawBorder(Canvas canvas, Paint paint, float left, float top, float right, float bottom) {
+        private void drawBorder(Canvas canvas, Paint paint, float left, float top, float right, float bottom,@ColorInt  int color) {
+            paint.setColor(color);
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(mOption.lineWidth);
             drawHorizontalLine(canvas, paint, left, right, top);
             drawVerticalLine(canvas, paint, top, bottom, left);
             drawHorizontalLine(canvas, paint, left, right, bottom);
@@ -431,14 +415,10 @@ public class ProgressChart extends SurfaceView implements SurfaceHolder.Callback
         }
 
         private void drawHorizontalLine(Canvas canvas, Paint paint, float startX, float endX, float lineY) {
-            paint.setColor(mOption.lineColor);
-            paint.setStrokeWidth(mOption.lineWidth);
             canvas.drawLine(startX, lineY, endX, lineY, paint);
         }
 
         private void drawVerticalLine(Canvas canvas, Paint paint, float startY, float endY, float lineX) {
-            paint.setColor(mOption.lineColor);
-            paint.setStrokeWidth(mOption.lineWidth);
             canvas.drawLine(lineX, startY, lineX, endY, paint);
         }
 
@@ -697,6 +677,6 @@ public class ProgressChart extends SurfaceView implements SurfaceHolder.Callback
             return offsetY;
         }
 
-
     }
+
 }
