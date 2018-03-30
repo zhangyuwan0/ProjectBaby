@@ -192,7 +192,8 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
         private static final String FIELD_LINE_WIDTH = "line_width";
         private static final String FIELD_LEFT_COLUMN_HEADER_BOTTOM_TEXT = "left_column_header_bottom_text";
         private static final String FIELD_LIFT_COLUMN_HEADER_TOP_TEXT = "lift_column_header_top_text";
-        private static final String FIELD_RIGHT_COLUMN_HEADER_TEXT = "right_column_header_text";
+        private static final String FIELD_RIGHT_COLUMN_HEADER_LEFT_TEXT = "right_column_header_left_text";
+        private static final String FIELD_RIGHT_COLUMN_HEADER_RIGHT_TEXT = "right_column_header_right_text";
         private static final String FIELD_PROCESS_COMPLETE_TEXT_COLOR = "process_complete_text_color";
         private static final String FIELD_PROCESS_NEED_TEXT_COLOR = "process_need_text_color";
         private static final String FIELD_HEADER_TEXT_SIZE = "header_text_size";
@@ -208,8 +209,11 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
         @SerializedName(FIELD_LIFT_COLUMN_HEADER_TOP_TEXT)
         public String liftColumnHeaderTopText = "时间";
 
-        @SerializedName(FIELD_RIGHT_COLUMN_HEADER_TEXT)
-        public String rightColumnHeaderText = "完成情况";
+        @SerializedName(FIELD_RIGHT_COLUMN_HEADER_LEFT_TEXT)
+        public String rightColumnHeaderLeftText = "预计";
+
+        @SerializedName(FIELD_RIGHT_COLUMN_HEADER_RIGHT_TEXT)
+        public String rightColumnHeaderRightText = "已完成";
 
         // TODO 组件宽度/高度获取
         // TODO time bar width 计算 (由上一步结果影响)
@@ -425,17 +429,52 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
 
         @Override
         void drawRightHeader(Canvas canvas, Paint paint) {
-
+            // ——————————
+            // |        |
+            // |  已完成/应该完成
+            drawBorder(canvas,paint,mOption.width - mOption.rightColumnWidth,0,mOption.width,mOption.chartHeaderHeight,mOption.headerLineColor);
+            // 中间线绘制
+            float middleX = mOption.rightColumnWidth * 0.5f;
+            float middleY = mOption.chartHeaderHeight * 0.5f;
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setColor(mOption.headerLineColor);
+            drawVerticalLine(canvas,paint,0,mOption.chartHeaderHeight,middleX);
+            // 文字 | 文字
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(mOption.headerTextColor);
+            paint.setTextSize(mOption.headerTextSize);
+            canvas.drawText(mOption.rightColumnHeaderLeftText,middleX*0.5f,middleY,paint);
+            canvas.drawText(mOption.rightColumnHeaderRightText,middleX*1.5f,middleY,paint);
         }
+
+
 
         @Override
         void drawLeftColumn(Canvas canvas, Paint paint, int position, ProcessWrapper process) {
-
+            
         }
 
         @Override
         void drawRightColumn(Canvas canvas, Paint paint, int position, ProcessWrapper process) {
-
+            float startY = mOption.processItemHeight * position;
+            float endY = startY + mOption.processItemHeight;
+            float middleX = mOption.width - mOption.rightColumnWidth;
+            float middleY = mOption.chartHeaderHeight + (startY + mOption.processItemHeight * 0.5f);
+            // border
+            paint.setColor(mOption.lineColor);
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(mOption.lineWidth);
+            drawBorder(canvas,paint,mOption.width-mOption.rightColumnWidth,startY,mOption.width,endY,mOption.lineColor);
+            // split line
+            drawVerticalLine(canvas,paint,startY,endY,middleX);
+            // text
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(mOption.processNeedTextColor);
+            paint.setTextSize(mOption.processNeedTextSize);
+            canvas.drawText(mOption.rightColumnHeaderLeftText,middleX*0.5f,middleY,paint);
+            paint.setColor(mOption.processCompleteTextColor);
+            paint.setTextSize(mOption.processCompleteTextSize);
+            canvas.drawText(mOption.rightColumnHeaderRightText,middleX*1.5f,middleY,paint);
         }
 
         @Override
