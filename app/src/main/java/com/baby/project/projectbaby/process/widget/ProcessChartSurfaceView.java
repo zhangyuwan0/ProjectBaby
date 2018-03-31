@@ -3,14 +3,13 @@ package com.baby.project.projectbaby.process.widget;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.DashPathEffect;
 import android.graphics.Paint;
 import android.support.annotation.ColorInt;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.view.GestureDetector;
 import android.view.MotionEvent;
-import android.view.ScaleGestureDetector;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.widget.Scroller;
@@ -143,6 +142,11 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
             mCanvas.drawColor(Color.WHITE);
             mProcessChartPainter.drawHeaderBackground(mCanvas, mPaint);
             mProcessChartPainter.drawLeftHeader(mCanvas, mPaint);
+            mProcessChartPainter.drawRightHeader(mCanvas, mPaint);
+            ProcessWrapper processWrapper = new ProcessWrapper();
+            for (int i = 0; i < 8; i++) {
+                mProcessChartPainter.drawRightColumn(mCanvas,mPaint,i,processWrapper);
+            }
             // 尚未给数据 不用绘制
             if (null == this.project) {
 //                return;
@@ -238,20 +242,20 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
         public float timeBarDayWidth;
 
         @SerializedName(FIELD_LEFT_COLUMN_WIDTH)
-        public float leftColumnWidth = 60;
+        public float leftColumnWidth = 100;
 
         @SerializedName(FIELD_RIGHT_COLUMN_WIDTH)
-        public float rightColumnWidth;
+        public float rightColumnWidth = 160;
 
         @SerializedName(FIELD_CHART_HEADER_HEIGHT)
-        public float chartHeaderHeight = 50;
+        public float chartHeaderHeight = 70;
         /**
          * process list
          */
         public float processListHeight;
 
         @SerializedName(FIELD_PROCESS_ITEM_HEIGHT)
-        public float processItemHeight;
+        public float processItemHeight = 70;
 
         @SerializedName(FIELD_PROCESS_ESTIMATE_LINE_HEIGHT)
         public float processEstimateLineHeight;
@@ -323,12 +327,12 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
 
         @SerializedName(FIELD_PROCESS_COMPLETE_TEXT_COLOR)
         public @ColorInt
-        int processCompleteTextColor;
+        int processCompleteTextColor = Color.GREEN;
 
 
         @SerializedName(FIELD_PROCESS_NEED_TEXT_COLOR)
         public @ColorInt
-        int processNeedTextColor;
+        int processNeedTextColor = Color.RED;
 
         /**
          * extra
@@ -337,13 +341,13 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
         public float lineWidth = 1.2f;
 
         @SerializedName(FIELD_HEADER_TEXT_SIZE)
-        public float headerTextSize = 13.0f;
+        public float headerTextSize = 23.0f;
 
         @SerializedName(FIELD_PROCESS_COMPLETE_TEXT_SIZE)
-        public float processCompleteTextSize;
+        public float processCompleteTextSize = 23.0f;
 
         @SerializedName(FIELD_PROCESS_NEED_TEXT_SIZE)
-        public float processNeedTextSize;
+        public float processNeedTextSize = 23.0f;
 
         public static Option getDefaultOption() {
             Option defaultOption = new Option();
@@ -355,13 +359,21 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
 
     private static class ProcessChartPainter extends AbsProcessChartPainter {
 
+        private static final float[] DASH_PARAMS = new float[]{6, 4};
+
         private TouchHelper mTouchHelper;
 
         private Option mOption;
 
+        private DashPathEffect mDashPathEffect;
+
+        private Date today;
+
         public ProcessChartPainter(TouchHelper touchHelper, Option option) {
             mTouchHelper = touchHelper;
             mOption = option;
+            mDashPathEffect = new DashPathEffect(DASH_PARAMS, 0);
+            today = DateUtil.getDayFromDate(new Date());
         }
 
         public void setOption(Option option) {
@@ -384,15 +396,15 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
 
         @Override
         void drawHeaderBackground(Canvas canvas, Paint paint) {
-            paint.setColor(mOption.headerBackgroundColor);
-            paint.setStyle(Paint.Style.FILL);
+            setBackgroundPaintStyle(paint, mOption.headerBackgroundColor);
             canvas.drawRect(0f, 0f, mOption.width, mOption.chartHeaderHeight, paint);
         }
 
         @Override
         void drawLeftHeader(Canvas canvas, Paint paint) {
             // border
-            drawBorder(canvas, paint, 0f, 0f, mOption.leftColumnWidth, mOption.chartHeaderHeight,mOption.headerLineColor);
+            setLinePaintStyle(paint, mOption.headerLineColor, mOption.lineWidth);
+            drawBorder(canvas, paint, 0f, 0f, mOption.leftColumnWidth, mOption.chartHeaderHeight, mOption.headerLineColor);
             // split line
             canvas.drawLine(0f, 0f, mOption.leftColumnWidth, mOption.chartHeaderHeight, paint);
             // bottom text
@@ -400,18 +412,30 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
             float middleWidth = mOption.leftColumnWidth * 0.5f;
             float bottomTextX = middleWidth * 0.5f;
             float topTextX = mOption.leftColumnWidth - middleWidth * 0.5f;
-            paint.setTextAlign(Paint.Align.CENTER);
-            paint.setColor(mOption.headerTextColor);
-            paint.setTextSize(mOption.headerTextSize);
+            setTextPaintStyle(paint, Paint.Align.CENTER, mOption.headerTextColor, mOption.headerTextSize);
             CanvasUtil.drawText(canvas, paint, mOption.leftColumnHeaderBottomText, bottomTextX, middleHeight, CanvasUtil.BASELINE_MODE_BOTTOM);
             CanvasUtil.drawText(canvas, paint, mOption.liftColumnHeaderTopText, topTextX, middleHeight, CanvasUtil.BASELINE_MODE_TOP);
         }
 
+        private void setTextPaintStyle(Paint paint, Paint.Align align, @ColorInt int textColor, float textSize) {
+            paint.setTextAlign(align);
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(textColor);
+            paint.setTextSize(textSize);
+        }
 
-        private void drawBorder(Canvas canvas, Paint paint, float left, float top, float right, float bottom,@ColorInt  int color) {
-            paint.setColor(color);
+        private void setLinePaintStyle(Paint paint, @ColorInt int lineColor, float lineWidth) {
             paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(mOption.lineWidth);
+            paint.setColor(lineColor);
+            paint.setStrokeWidth(lineWidth);
+        }
+
+        private void setBackgroundPaintStyle(Paint paint, @ColorInt int bgColor) {
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(bgColor);
+        }
+
+        private void drawBorder(Canvas canvas, Paint paint, float left, float top, float right, float bottom, @ColorInt int color) {
             drawHorizontalLine(canvas, paint, left, right, top);
             drawVerticalLine(canvas, paint, top, bottom, left);
             drawHorizontalLine(canvas, paint, left, right, bottom);
@@ -429,52 +453,45 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
 
         @Override
         void drawRightHeader(Canvas canvas, Paint paint) {
-            // ——————————
-            // |        |
-            // |  已完成/应该完成
-            drawBorder(canvas,paint,mOption.width - mOption.rightColumnWidth,0,mOption.width,mOption.chartHeaderHeight,mOption.headerLineColor);
+            // border
+            setLinePaintStyle(paint, mOption.headerLineColor, mOption.headerLineColor);
+            drawBorder(canvas, paint, mOption.width - mOption.rightColumnWidth, 0, mOption.width, mOption.chartHeaderHeight, mOption.headerLineColor);
             // 中间线绘制
-            float middleX = mOption.rightColumnWidth * 0.5f;
+            float halfWidth = mOption.rightColumnWidth * 0.5f;
+            float middleX = mOption.width - halfWidth;
             float middleY = mOption.chartHeaderHeight * 0.5f;
-            paint.setStyle(Paint.Style.STROKE);
-            paint.setColor(mOption.headerLineColor);
-            drawVerticalLine(canvas,paint,0,mOption.chartHeaderHeight,middleX);
+            float offsetX = halfWidth * 0.5f;
+            drawVerticalLine(canvas, paint, 0, mOption.chartHeaderHeight, middleX);
             // 文字 | 文字
-            paint.setStyle(Paint.Style.FILL);
-            paint.setColor(mOption.headerTextColor);
-            paint.setTextSize(mOption.headerTextSize);
-            canvas.drawText(mOption.rightColumnHeaderLeftText,middleX*0.5f,middleY,paint);
-            canvas.drawText(mOption.rightColumnHeaderRightText,middleX*1.5f,middleY,paint);
+            setTextPaintStyle(paint, Paint.Align.CENTER, mOption.headerTextColor, mOption.headerTextSize);
+            CanvasUtil.drawText(canvas, paint, mOption.rightColumnHeaderLeftText, middleX - offsetX, middleY, CanvasUtil.BASELINE_MODE_CENTER);
+            CanvasUtil.drawText(canvas, paint, mOption.rightColumnHeaderRightText, middleX + offsetX, middleY, CanvasUtil.BASELINE_MODE_CENTER);
         }
-
 
 
         @Override
         void drawLeftColumn(Canvas canvas, Paint paint, int position, ProcessWrapper process) {
-            
+
         }
 
         @Override
         void drawRightColumn(Canvas canvas, Paint paint, int position, ProcessWrapper process) {
-            float startY = mOption.processItemHeight * position;
+            float startY = mOption.chartHeaderHeight + mOption.processItemHeight * position;
             float endY = startY + mOption.processItemHeight;
-            float middleX = mOption.width - mOption.rightColumnWidth;
-            float middleY = mOption.chartHeaderHeight + (startY + mOption.processItemHeight * 0.5f);
+            float middleX = mOption.width - mOption.rightColumnWidth * 0.5f;
+            float middleY = startY + mOption.processItemHeight * 0.5f;
+            float offsetX = mOption.rightColumnWidth * 0.25f;
             // border
-            paint.setColor(mOption.lineColor);
-            paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(mOption.lineWidth);
-            drawBorder(canvas,paint,mOption.width-mOption.rightColumnWidth,startY,mOption.width,endY,mOption.lineColor);
+            setLinePaintStyle(paint, mOption.lineColor, mOption.lineWidth);
+            drawBorder(canvas, paint, mOption.width - mOption.rightColumnWidth, startY, mOption.width, endY, mOption.lineColor);
             // split line
-            drawVerticalLine(canvas,paint,startY,endY,middleX);
+            drawVerticalLine(canvas, paint, startY, endY, middleX);
             // text
-            paint.setStyle(Paint.Style.FILL);
-            paint.setColor(mOption.processNeedTextColor);
-            paint.setTextSize(mOption.processNeedTextSize);
-            canvas.drawText(mOption.rightColumnHeaderLeftText,middleX*0.5f,middleY,paint);
+            setTextPaintStyle(paint, Paint.Align.CENTER, mOption.processNeedTextColor, mOption.processNeedTextSize);
+            CanvasUtil.drawText(canvas, paint, "" + process.getNeedCompletePercent() , middleX - offsetX, middleY, CanvasUtil.BASELINE_MODE_CENTER);
             paint.setColor(mOption.processCompleteTextColor);
             paint.setTextSize(mOption.processCompleteTextSize);
-            canvas.drawText(mOption.rightColumnHeaderRightText,middleX*1.5f,middleY,paint);
+            CanvasUtil.drawText(canvas, paint, "" + process.getProcessAlreadyCompletePercent(), middleX + offsetX, middleY, CanvasUtil.BASELINE_MODE_CENTER);
         }
 
         @Override
@@ -492,19 +509,41 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
 
         }
 
+        private void setDashLinePaintStyle(Paint paint, @ColorInt int lineColor, float lineWidth) {
+            paint.setPathEffect(mDashPathEffect);
+            setLinePaintStyle(paint, lineColor, lineWidth);
+        }
+
         @Override
         void drawStartWorkLine(Canvas canvas, Paint paint, Project project) {
+            // FIXME 每次判断反而更慢，直接绘制更快
+            canvas.save();
+            canvas.translate(mOption.leftColumnWidth + (-mTouchHelper.getScrollX()), mOption.chartHeaderHeight);
+            setDashLinePaintStyle(paint, mOption.startWorkLineColor, mOption.lineWidth);
+            canvas.drawLine(0, 0, 0, mOption.processListHeight, paint);
 
+            canvas.restore();
         }
 
         @Override
         void drawCompleteWorkLine(Canvas canvas, Paint paint, Project project) {
-
+            canvas.save();
+            canvas.translate(mOption.leftColumnWidth + (-mTouchHelper.getScrollX() + DateUtil.getDateDiff(mTouchHelper.projectBeginTime, mTouchHelper.projectEndTime)), mOption.chartHeaderHeight);
+            setDashLinePaintStyle(paint, mOption.startWorkLineColor, mOption.lineWidth);
+            canvas.drawLine(0, 0, 0, mOption.processListHeight, paint);
+            paint.reset();
+            canvas.restore();
         }
 
         @Override
         void drawTodayLine(Canvas canvas, Paint paint, Project project) {
-
+            // FIXME today的更新滞后问题
+            canvas.save();
+            canvas.translate(mOption.leftColumnWidth + (-mTouchHelper.getScrollX() + DateUtil.getDateDiff(mTouchHelper.projectBeginTime, today)), mOption.chartHeaderHeight);
+            setDashLinePaintStyle(paint, mOption.startWorkLineColor, mOption.lineWidth);
+            canvas.drawLine(0, 0, 0, mOption.processListHeight, paint);
+            paint.reset();
+            canvas.restore();
         }
 
         @Override
@@ -642,7 +681,7 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
          * @return 当前时间轴起点所显示时间
          */
         public long getCurrentTime() {
-            return DateUtil.convertDayToDate(projectBeginTime, projectEndTime, getDayInProjectWithScrollX(scrollX));
+            return DateUtil.convertProjectDayToDate(projectBeginTime, projectEndTime, getDayInProjectWithScrollX(scrollX));
         }
 
         /**

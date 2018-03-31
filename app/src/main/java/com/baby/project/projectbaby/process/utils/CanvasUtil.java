@@ -19,13 +19,14 @@ public class CanvasUtil {
 
     public static float getDrawYForText(Paint.FontMetrics metrics, float baseLineY, int baseLineMode) {
         float result;
+        float top = metrics.top + baseLineY;
+        float bottom = metrics.bottom + baseLineY;
         switch (baseLineMode) {
             case BASELINE_MODE_CENTER:
-                result = (metrics.bottom - metrics.top) / 2.0f - metrics.bottom;
+                float offsetY = (baseLineY - top) * 0.5f;
+                result = baseLineY  + offsetY - metrics.bottom;
                 break;
             case BASELINE_MODE_BOTTOM:
-                float top = metrics.top + baseLineY;
-                float bottom = metrics.bottom + baseLineY;
                 //文字高度
                 float fontHeight = bottom - top; //注意top为负数
                 result = baseLineY + fontHeight / 2.0f;

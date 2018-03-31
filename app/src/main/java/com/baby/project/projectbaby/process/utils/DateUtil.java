@@ -63,7 +63,7 @@ public class DateUtil {
      * @param dayInProject 所在工程中天数
      * @return dayInProject所在工程中日期(long值)
      */
-    public static long convertDayToDate(Date beginDate, Date endDate, int dayInProject) {
+    public static long convertProjectDayToDate(Date beginDate, Date endDate, int dayInProject) {
         int diff = getDateDiff(endDate, beginDate);
         if (dayInProject > diff) {
             return endDate.getTime();
@@ -131,4 +131,10 @@ public class DateUtil {
         return getDateWithTime(beginDate, endDate, target);
     }
 
+    public static long getDateDiffWithDay(long time1, long time2) {
+        time1 /= DAY_MILLS;
+        time2 /= DAY_MILLS;
+        return (time1 - time2) / DAY_MILLS;
+
+    }
 }
