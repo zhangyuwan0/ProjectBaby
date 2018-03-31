@@ -139,10 +139,14 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
         try {
             mCanvas = mSurfaceHolder.lockCanvas();
             // clear canvas
-            mCanvas.drawColor(Color.WHITE);
+            mCanvas.drawColor(Color.GRAY);
             mProcessChartPainter.drawHeaderBackground(mCanvas, mPaint);
             mProcessChartPainter.drawLeftHeader(mCanvas, mPaint);
             mProcessChartPainter.drawRightHeader(mCanvas, mPaint);
+            Project project = new Project();
+            project.setBeginTime(new Date());
+            project.setEndTime(new Date());
+            mProcessChartPainter.drawTodayLine(mCanvas,mPaint,project);
             ProcessWrapper processWrapper = new ProcessWrapper();
             for (int i = 0; i < 8; i++) {
                 mProcessChartPainter.drawRightColumn(mCanvas,mPaint,i,processWrapper);
@@ -303,7 +307,7 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
 
         @SerializedName(FIELD_START_WORK_LINE_COLOR)
         public @ColorInt
-        int startWorkLineColor;
+        int startWorkLineColor = Color.YELLOW;
 
         @SerializedName(FIELD_COMPLETE_WORK_LINE_COLOR)
         public @ColorInt
@@ -359,7 +363,7 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
 
     private static class ProcessChartPainter extends AbsProcessChartPainter {
 
-        private static final float[] DASH_PARAMS = new float[]{6, 4};
+        private static final float[] DASH_PARAMS = new float[]{6, 6};
 
         private TouchHelper mTouchHelper;
 
