@@ -1,5 +1,7 @@
 package com.baby.project.projectbaby.process.bean;
 
+import android.util.Log;
+
 import com.baby.project.projectbaby.process.utils.ArrayUtil;
 import com.baby.project.projectbaby.process.utils.DateUtil;
 
@@ -12,7 +14,7 @@ import java.util.List;
  * Created by yosemite on 2018/3/17.
  */
 
-public class ProcessWrapper{
+public class ProcessWrapper {
 
     private int beginDay;                    // 工序开始时所在工程天数
 
@@ -30,7 +32,7 @@ public class ProcessWrapper{
 
     private int shutdownDays;                // 工序停工天数
 
-    private int shutdownDaysBeforeToday;
+    private int shutdownDaysBeforeToday;     // 在今天之前的停工天数
 
     private Process process;                 // 工序
 
@@ -47,8 +49,11 @@ public class ProcessWrapper{
 
         int size = processes.size();
         Date today = DateUtil.getDayFromDate(project.getToday());
+        // 让今天不超出限制
+        today.setTime(DateUtil.getDateWithTime(project.getBeginTime(),project.getEndTime(),today));
         Date projectBeginTime = DateUtil.getDayFromDate(project.getBeginTime());
         Date projectEndTime = DateUtil.getDayFromDate(project.getEndTime());
+        Date tempDate = new Date();
         int projectSumDays = DateUtil.getDateDiff(projectBeginTime, projectEndTime);
         for (int i = 0; i < size; i++) {
             Process process = processes.get(i);
@@ -62,17 +67,18 @@ public class ProcessWrapper{
             wrapper.setUnCompletePercent(1.0f - process.getProcessAlreadyCompletePercent());
             // 时间条 而不是所用时间
             wrapper.setUnCompletePercentDays(wrapper.endDay - wrapper.shutdownDays + process.getProcessUseDays() * wrapper.unCompletePercent);
-            int todayDays = wrapper.endDay - wrapper.beginDay - wrapper.shutdownDaysBeforeToday;
+            tempDate.setTime(DateUtil.getDateWithTime(process.getProcessBeginTime(),process.getProcessEndTime(),today));
+            int todayDays = DateUtil.getDateDiff(process.getProcessBeginTime(),tempDate) - wrapper.shutdownDaysBeforeToday;
             wrapper.setNeedCompletePercent(todayDays / process.getProcessUseDays());
             wrapper.setNeedCompletePercentDays(wrapper.beginDay + wrapper.shutdownDaysBeforeToday + DateUtil.convertDateToDay(process.getProcessBeginTime(), process.getProcessEndTime(), today));
             wrapper.setAlreadyCompletePercentDays(wrapper.beginDay + wrapper.shutdownDaysBeforeToday + process.getProcessUseDays() * process.getProcessAlreadyCompletePercent());
+            wrappers.add(wrapper);
         }
         return wrappers;
     }
 
     private static void setShutdownDaysAndBeforeTodayDays(ProcessWrapper wrapper, Process process, Date today) {
         int shutdownDays = 0;
-//        Date processBeginTime = DateUtil.getDayFromDate(process.getProcessBeginTime());
         Date processEndTime = DateUtil.getDayFromDate(process.getProcessEndTime());
         List<Project.ShutdownMessage> shutdownMessages = process.getProcessShutdownTimes();
         int shutdownDaysBeforeToday = 0;
@@ -87,7 +93,7 @@ public class ProcessWrapper{
                 } else {
                     shutdownDays += DateUtil.getDateDiff(beginTime, endTime);
                 }
-
+                // 今天在停工之后才加
                 if (beginTime.before(today)) {
                     switch (endTime.compareTo(today)) {
                         case 0:

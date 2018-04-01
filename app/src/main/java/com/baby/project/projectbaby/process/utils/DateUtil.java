@@ -10,7 +10,7 @@ import java.util.Date;
 
 public class DateUtil {
 
-    private static final long DAY_MILLS = 1000 * 60 * 60 * 24L;
+    public static final long DAY_MILLS = 1000 * 60 * 60 * 24L;
     private static Calendar sCalendar = Calendar.getInstance();
 
     /**
@@ -43,6 +43,17 @@ public class DateUtil {
      */
     public static int getDateDiff(Date d1, Date d2) {
         return (int) Math.abs((d1.getTime() - d2.getTime()) / DAY_MILLS);
+    }
+
+    /**
+     * 获取两日期相差天数
+     *
+     * @param d1 date one
+     * @param d2 date two
+     * @return 相差天数 date one - date two
+     */
+    public static int getDateDiffNotAbs(Date d1, Date d2) {
+        return (int) ((d1.getTime() - d2.getTime()) / DAY_MILLS);
     }
 
     /**
@@ -128,13 +139,13 @@ public class DateUtil {
      */
     public static long getDateWithTime(Date beginDate, Date endDate, Date time) {
         Date target = getDayFromDate(time);
-        return getDateWithTime(beginDate, endDate, target);
+        return getDateWithTime(beginDate, endDate, target.getTime());
     }
 
     public static long getDateDiffWithDay(long time1, long time2) {
+        // FIXME diff error !!  check draw shutdown content then fix success after.
         time1 /= DAY_MILLS;
         time2 /= DAY_MILLS;
-        return (time1 - time2) / DAY_MILLS;
-
+        return time1 - time2;
     }
 }

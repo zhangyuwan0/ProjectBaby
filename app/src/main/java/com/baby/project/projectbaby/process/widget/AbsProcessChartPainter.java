@@ -33,14 +33,10 @@ public abstract class AbsProcessChartPainter {
 
     abstract void drawProcessBackground(Canvas canvas, Paint paint, int position, ProcessWrapper process);
 
-    abstract void drawStartWorkLine(Canvas canvas, Paint paint, Project project);
-
-    abstract void drawCompleteWorkLine(Canvas canvas, Paint paint, Project project);
-
     abstract void drawTodayLine(Canvas canvas, Paint paint, Project project);
 
     private void drawHeader(Canvas canvas, Paint paint, Project project) {
-        drawHeaderBackground(canvas,paint);
+        drawHeaderBackground(canvas, paint);
         drawLeftHeader(canvas, paint);
         drawTimeLine(canvas, paint, project);
         drawRightHeader(canvas, paint);
@@ -49,12 +45,7 @@ public abstract class AbsProcessChartPainter {
     public abstract void drawProcessList(Canvas canvas, Paint paint, Project project, List<ProcessWrapper> processWrappers);
 
     private void drawExtraView(Canvas canvas, Paint paint, Project project) {
-        if (project != null) {
-            drawShutdownContent(canvas, paint, project);
-            drawStartWorkLine(canvas, paint, project);
-            drawCompleteWorkLine(canvas, paint, project);
-        }
-
+        drawShutdownContent(canvas, paint, project);
         drawTodayLine(canvas, paint, project);
     }
 

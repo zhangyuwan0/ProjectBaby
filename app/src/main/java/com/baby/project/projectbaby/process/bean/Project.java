@@ -54,7 +54,7 @@ public class Project {
 
     // TODO 考虑如何接受参数，参数类型，及转换
     @SerializedName(FIELD_PROJECT_TODAY)
-    private Date today;             // 服务器时间(今天)
+    private Date today = new Date();             // 服务器时间(今天)
 
     public Date getToday() {
         return today;
