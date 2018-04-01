@@ -17,6 +17,10 @@ public class CanvasUtil {
         canvas.drawText(content,x,getDrawYForText(paint.getFontMetrics(),y,baseLineMode),paint);
     }
 
+    public static void drawText(Canvas canvas,Paint paint,String content,int start,int end,float x,float y,int baseLineMode) {
+        canvas.drawText(content,start,end,x,getDrawYForText(paint.getFontMetrics(),y,baseLineMode),paint);
+    }
+
     public static float getDrawYForText(Paint.FontMetrics metrics, float baseLineY, int baseLineMode) {
         float result;
         float top = metrics.top + baseLineY;

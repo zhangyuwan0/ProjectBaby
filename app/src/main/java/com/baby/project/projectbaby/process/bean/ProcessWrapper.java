@@ -12,7 +12,7 @@ import java.util.List;
  * Created by yosemite on 2018/3/17.
  */
 
-public class ProcessWrapper extends Process{
+public class ProcessWrapper{
 
     private int beginDay;                    // 工序开始时所在工程天数
 
