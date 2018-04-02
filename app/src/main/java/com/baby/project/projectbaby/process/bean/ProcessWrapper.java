@@ -16,9 +16,9 @@ import java.util.List;
 
 public class ProcessWrapper {
 
-    private int beginDay;                    // 工序开始时所在工程天数
+    private long beginDay;                    // 工序开始时所在工程天数
 
-    private int endDay;                      // 工序结束时所在工程天数
+    private long endDay;                      // 工序结束时所在工程天数
 
     private float unCompletePercent;         // 未完成百分比
 
@@ -50,11 +50,11 @@ public class ProcessWrapper {
         int size = processes.size();
         Date today = DateUtil.getDayFromDate(project.getToday());
         // 让今天不超出限制
-        today.setTime(DateUtil.getDateWithTime(project.getBeginTime(),project.getEndTime(),today));
+        today.setTime(DateUtil.getDateWithTime(project.getBeginTime(), project.getEndTime(), today));
         Date projectBeginTime = DateUtil.getDayFromDate(project.getBeginTime());
         Date projectEndTime = DateUtil.getDayFromDate(project.getEndTime());
         Date tempDate = new Date();
-        int projectSumDays = DateUtil.getDateDiff(projectBeginTime, projectEndTime);
+        long projectSumDays = DateUtil.getDateDiff(projectBeginTime, projectEndTime);
         for (int i = 0; i < size; i++) {
             Process process = processes.get(i);
             Date processBeginDate = DateUtil.getDayFromDate(process.getProcessBeginTime());
@@ -67,9 +67,10 @@ public class ProcessWrapper {
             wrapper.setUnCompletePercent(1.0f - process.getProcessAlreadyCompletePercent());
             // 时间条 而不是所用时间
             wrapper.setUnCompletePercentDays(wrapper.endDay - wrapper.shutdownDays + process.getProcessUseDays() * wrapper.unCompletePercent);
-            tempDate.setTime(DateUtil.getDateWithTime(process.getProcessBeginTime(),process.getProcessEndTime(),today));
-            int todayDays = DateUtil.getDateDiff(process.getProcessBeginTime(),tempDate) - wrapper.shutdownDaysBeforeToday;
-            wrapper.setNeedCompletePercent(todayDays / process.getProcessUseDays());
+            // 因为今天是预计完成 所以要+1天
+            tempDate.setTime(DateUtil.getDateWithTime(processBeginDate, processEndDate, today.getTime() + DateUtil.DAY_MILLS));
+            long todayDays = DateUtil.getDateDiff(processBeginDate, tempDate) - wrapper.shutdownDaysBeforeToday;
+            wrapper.setNeedCompletePercent(todayDays / (float) (process.getProcessUseDays()));
             wrapper.setNeedCompletePercentDays(wrapper.beginDay + wrapper.shutdownDaysBeforeToday + DateUtil.convertDateToDay(process.getProcessBeginTime(), process.getProcessEndTime(), today));
             wrapper.setAlreadyCompletePercentDays(wrapper.beginDay + wrapper.shutdownDaysBeforeToday + process.getProcessUseDays() * process.getProcessAlreadyCompletePercent());
             wrappers.add(wrapper);
@@ -143,19 +144,19 @@ public class ProcessWrapper {
         this.process = process;
     }
 
-    public int getBeginDay() {
+    public long getBeginDay() {
         return beginDay;
     }
 
-    public void setBeginDay(int beginDay) {
+    public void setBeginDay(long beginDay) {
         this.beginDay = beginDay;
     }
 
-    public int getEndDay() {
+    public long getEndDay() {
         return endDay;
     }
 
-    public void setEndDay(int endDay) {
+    public void setEndDay(long endDay) {
         this.endDay = endDay;
     }
 

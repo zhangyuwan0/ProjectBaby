@@ -421,10 +421,10 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
             float processListRealHeight = mOption.processItemHeight * project.getProcesses().size();
             for (int i = 0; i < size; i++) {
                 Project.ShutdownMessage shutdownMessage = shutdownMessages.get(i);
-                // FIXME 这里须知正负
                 long shutDownBeginDayInProject = Math.max(DateUtil.getDateDiffWithDay(projectBeginTime, shutdownMessage.getBeginTime().getTime()), 0);
                 long shutDownEndDayInProject = Math.min(DateUtil.getDateDiffWithDay(projectBeginTime, shutdownMessage.getEndTime().getTime()), projectEndDay);
-                if (shutDownEndDayInProject >= curDayInProject && shutDownEndDayInProject <= shownEndDayInProject) {
+                // 在显示范围内，才绘制
+                if (shutDownEndDayInProject >= curDayInProject && shutDownBeginDayInProject <= shownEndDayInProject) {
                     canvas.save();
                     canvas.clipRect(mOption.leftColumnWidth, mOption.chartHeaderHeight, mOption.width - mOption.rightColumnWidth, mOption.chartHeaderHeight + mOption.processListHeight);
                     canvas.translate(mOption.leftColumnWidth + (-mTouchHelper.getScrollX() + shutDownBeginDayInProject - 1) * mOption.timeBarDayWidth, mOption.chartHeaderHeight);
@@ -784,7 +784,7 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
          */
         private float offsetY;
 
-        private int sumDayInProject;
+        private long sumDayInProject;
 
         private int processListSize;
 

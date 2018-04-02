@@ -21,8 +21,8 @@ public class DateUtil {
      * @param targetDate 待转换日期
      * @return 如果在范围内返回正常天数，小于开始日期返回0，大于结束日期返回 结束日期-开始日期 天数
      */
-    public static int convertDateToDay(Date beginDate, Date endDate, Date targetDate) {
-        int result;
+    public static long convertDateToDay(Date beginDate, Date endDate, Date targetDate) {
+        long result;
 
         if (targetDate.after(endDate)) {
             result = getDateDiff(endDate, beginDate);
@@ -41,8 +41,8 @@ public class DateUtil {
      * @param d2 date two
      * @return 相差天数的绝对值
      */
-    public static int getDateDiff(Date d1, Date d2) {
-        return (int) Math.abs((d1.getTime() - d2.getTime()) / DAY_MILLS);
+    public static long getDateDiff(Date d1, Date d2) {
+        return Math.abs((d1.getTime() - d2.getTime()) / DAY_MILLS);
     }
 
     /**
@@ -75,7 +75,7 @@ public class DateUtil {
      * @return dayInProject所在工程中日期(long值)
      */
     public static long convertProjectDayToDate(Date beginDate, Date endDate, int dayInProject) {
-        int diff = getDateDiff(endDate, beginDate);
+        long diff = getDateDiff(endDate, beginDate);
         if (dayInProject > diff) {
             return endDate.getTime();
         } else {
@@ -143,9 +143,8 @@ public class DateUtil {
     }
 
     public static long getDateDiffWithDay(long time1, long time2) {
-        // FIXME diff error !!  check draw shutdown content then fix success after.
         time1 /= DAY_MILLS;
         time2 /= DAY_MILLS;
-        return time1 - time2;
+        return time2 - time1;
     }
 }
