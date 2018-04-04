@@ -122,6 +122,8 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
         long sleepDurationMillis = 0;
         // 去锯齿
         mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        // 开启文本绘制优化
+        mPaint.setStrikeThruText(true);
         Project.ShutdownMessage shutdownMessage = new Project.ShutdownMessage();
         shutdownMessage.setBeginTime(new Date(new Date().getTime() + DateUtil.DAY_MILLS * 2));
         shutdownMessage.setEndTime(new Date(new Date().getTime() + DateUtil.DAY_MILLS * 4));
@@ -146,7 +148,6 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
         }
         this.project.setProcesses(processes);
         this.processWrappers = ProcessWrapper.convertProcessList(project);
-        Log.e("canvas","process size " + this.processWrappers.size());
         this.project.setShutdownMessages(list);
 
         while (mIsDrawing) {
