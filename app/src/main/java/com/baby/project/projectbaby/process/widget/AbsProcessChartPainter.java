@@ -23,15 +23,31 @@ public abstract class AbsProcessChartPainter {
 
     abstract void drawRightHeader(Canvas canvas, Paint paint);
 
-    abstract void drawLeftColumn(Canvas canvas, Paint paint, int position, ProcessWrapper process);
+    /**
+     * @param startY 经过 scaleFactor处理
+     * @param endY 经过 scaleFactor处理
+     */
+    abstract void drawLeftColumn(Canvas canvas, Paint paint, int position, ProcessWrapper process,float startY,float endY);
 
-    abstract void drawRightColumn(Canvas canvas, Paint paint, int position, ProcessWrapper process);
+    /**
+     * @param startY 经过 scaleFactor处理
+     * @param endY 经过 scaleFactor处理
+     */
+    abstract void drawRightColumn(Canvas canvas, Paint paint, int position, ProcessWrapper process,float startY,float endY);
 
     abstract void drawTimeLine(Canvas canvas, Paint paint, Project project);
 
-    abstract void drawProcessContent(Canvas canvas, Paint paint, int position, ProcessWrapper process);
+    /**
+     * @param startY 经过 scaleFactor处理
+     * @param endY 经过 scaleFactor处理
+     */
+    abstract void drawProcessContent(Canvas canvas, Paint paint, int position, ProcessWrapper process,float startY,float endY);
 
-    abstract void drawProcessBackground(Canvas canvas, Paint paint, int position, ProcessWrapper process);
+    /**
+     * @param startY 经过 scaleFactor处理
+     * @param endY 经过 scaleFactor处理
+     */
+    abstract void drawProcessBackground(Canvas canvas, Paint paint, int position, ProcessWrapper process,float startY,float endY);
 
     abstract void drawTodayLine(Canvas canvas, Paint paint, Project project);
 

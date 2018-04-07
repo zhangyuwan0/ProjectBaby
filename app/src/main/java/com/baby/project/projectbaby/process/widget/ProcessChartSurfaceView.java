@@ -9,7 +9,9 @@ import android.support.annotation.ColorInt;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.GestureDetector;
 import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.widget.Scroller;
@@ -35,7 +37,7 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
 
     private static final String TAG = "ProgressChart";
 
-    private static final int MIN_REFRESH_MILLIS = 50;
+    private static final int MIN_REFRESH_MILLIS = 17;
 
     private SurfaceHolder mSurfaceHolder;
     // 绘制所用画布
@@ -73,19 +75,24 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
     }
 
     private void initView() {
-        mOption = Option.getDefaultOption();
-        mTouchHelper = new TouchHelper(getContext(), mOption);
-        mProcessChartPainter = new ProcessChartPainter(mTouchHelper, mOption);
-        mSurfaceHolder = getHolder();
-        mSurfaceHolder.addCallback(this); // 注册surfaceHolder的回调方法
         this.setFocusable(true);
         this.setFocusableInTouchMode(true);
         this.setKeepScreenOn(true);
+
+        mSurfaceHolder = getHolder();
+        mSurfaceHolder.addCallback(this); // 注册surfaceHolder的回调方法
+
+        mOption = Option.getDefaultOption();
+        mTouchHelper = new TouchHelper(getContext(), mOption);
+        mProcessChartPainter = new ProcessChartPainter(mTouchHelper, mOption);
+
+        initGestureDetector();
+        initScaleGestureDetector();
     }
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-        Log.e(TAG, "surfaceCreated:width-" + getWidth() + ",height-" + getHeight());
+        Log.e(TAG, "surfaceCreated:width:" + getWidth() + ",height:" + getHeight());
 
         mIsDrawing = true;
         mThread = new Thread(this);
@@ -94,7 +101,7 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-        Log.e(TAG, "surfaceChanged:width-" + width + ",height-" + height);
+        Log.e(TAG, "surfaceChanged:width:" + width + ",height:" + height);
         // 更新配置
         mOption.calculateRealParams(width, height);
     }
@@ -112,8 +119,8 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-
-        return super.onTouchEvent(event);
+        mScaleGestureDetector.onTouchEvent(event);
+        return mGestureDetector.onTouchEvent(event);
     }
 
     @Override
@@ -131,24 +138,24 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
         list.add(shutdownMessage);
         this.project = new Project();
         project.setBeginTime(new Date());
-        project.setEndTime(new Date(new Date().getTime() + DateUtil.DAY_MILLS * 10));
+        project.setEndTime(new Date(new Date().getTime() + DateUtil.DAY_MILLS * 100));
         project.setProcesses(new ArrayList<Process>());
-        mTouchHelper.refreshData(project);
-        Process process = new Process();
-        process.setProcessBeginTime(new Date());
-        process.setProcessEndTime(new Date(new Date().getTime() + DateUtil.DAY_MILLS * 22));
-        process.setProcessAlreadyCompletePercent(0.5f);
-        process.setProcessCost(1000);
-        process.setProcessShutdownTimes(list);
-        process.setProcessUseDays(20);
-        process.setProcessName("汪爽宝宝最烦人汪爽宝宝最烦人汪爽宝宝最烦人汪爽宝宝最烦人汪爽宝宝最烦人");
         List<Process> processes = new ArrayList<>();
-        for (int i = 0; i < 8; i++) {
-            processes.add(i,process);
+        for (int i = 0; i < 60; i++) {
+            Process process = new Process();
+            process.setProcessBeginTime(new Date());
+            process.setProcessEndTime(new Date(new Date().getTime() + DateUtil.DAY_MILLS * 5));
+            process.setProcessAlreadyCompletePercent(0.5f);
+            process.setProcessCost(1000);
+            process.setProcessShutdownTimes(list);
+            process.setProcessUseDays(2);
+            process.setProcessName(i + "爽宝宝最烦人汪爽宝宝最烦人汪爽宝宝最烦人汪爽宝宝最烦人汪爽宝宝最烦人");
+            processes.add(i, process);
         }
         this.project.setProcesses(processes);
         this.processWrappers = ProcessWrapper.convertProcessList(project);
         this.project.setShutdownMessages(list);
+        mTouchHelper.refreshData(project);
 
         while (mIsDrawing) {
             long beforeUpdateRender = System.nanoTime();
@@ -167,9 +174,10 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
 
     private void updateAndRender(long deltaMillis) {
         try {
+            mTouchHelper.checkScrollState();
             mCanvas = mSurfaceHolder.lockCanvas();
             // clear canvas
-            mCanvas.drawColor(Color.WHITE);
+            mCanvas.drawColor(Color.TRANSPARENT);
             // 尚未给数据 不用绘制
             if (null == this.project) {
                 return;
@@ -256,8 +264,8 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
         public void calculateRealParams(int width, int height) {
             this.width = width;
             this.height = height;
-            this.timeBarWidth = width - this.leftColumnWidth - this.rightColumnWidth;
-            this.processListHeight = height - this.chartHeaderHeight;
+            this.timeBarWidth = this.width - this.leftColumnWidth - this.rightColumnWidth;
+            this.processListHeight = this.height - this.chartHeaderHeight;
         }
 
         public float width;
@@ -419,7 +427,7 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
             long curDayInProject = DateUtil.getDateDiffWithDay(projectBeginTime, mTouchHelper.getCurrentTime());
             long shownEndDayInProject = curDayInProject + offsetDay;
             int size = shutdownMessages.size();
-            float processListRealHeight = mOption.processItemHeight * project.getProcesses().size();
+            float processListRealHeight = mOption.processItemHeight * project.getProcesses().size() * mTouchHelper.scaleFactor;
             for (int i = 0; i < size; i++) {
                 Project.ShutdownMessage shutdownMessage = shutdownMessages.get(i);
                 long shutDownBeginDayInProject = Math.max(DateUtil.getDateDiffWithDay(projectBeginTime, shutdownMessage.getBeginTime().getTime()), 0);
@@ -427,10 +435,10 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
                 // 在显示范围内，才绘制
                 if (shutDownEndDayInProject >= curDayInProject && shutDownBeginDayInProject <= shownEndDayInProject) {
                     canvas.save();
-                    canvas.clipRect(mOption.leftColumnWidth, mOption.chartHeaderHeight, mOption.width - mOption.rightColumnWidth, mOption.chartHeaderHeight + mOption.processListHeight);
-                    canvas.translate(mOption.leftColumnWidth + (-mTouchHelper.getScrollX() + shutDownBeginDayInProject - 1) * mOption.timeBarDayWidth, mOption.chartHeaderHeight);
+                    canvas.clipRect(mOption.leftColumnWidth, mOption.chartHeaderHeight, mOption.width - mOption.rightColumnWidth, mOption.chartHeaderHeight + processListRealHeight);
+                    canvas.translate(mOption.leftColumnWidth - mTouchHelper.getScrollX() + (shutDownBeginDayInProject - 1) * mOption.timeBarDayWidth * mTouchHelper.scaleFactor, mOption.chartHeaderHeight);
                     setBackgroundPaintStyle(paint, mOption.shutdownBackgroundColor);
-                    canvas.drawRect(0, 0, (shutDownEndDayInProject - shutDownBeginDayInProject + 1) * mOption.timeBarDayWidth, Math.min(mOption.processListHeight, processListRealHeight), paint);
+                    canvas.drawRect(0, 0, (shutDownEndDayInProject - shutDownBeginDayInProject + 1) * mOption.timeBarDayWidth * mTouchHelper.scaleFactor, Math.min(mOption.processListHeight, processListRealHeight), paint);
                     canvas.restore();
                 } else {
                     break;
@@ -517,7 +525,7 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
         private static final String OMIT = "...";
 
         @Override
-        void drawLeftColumn(Canvas canvas, Paint paint, int position, ProcessWrapper process) {
+        void drawLeftColumn(Canvas canvas, Paint paint, int position, ProcessWrapper process, float startY, float endY) {
             /** 显示不下的文字使用...代替
              *  1.知道一个格子能显示几行文字
              *  2.知道一个格子的一行能显示几个字
@@ -526,17 +534,16 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
             // FIXME 为表格长度相关属性提供 最大值 和 最小值
             String processName = process.getProcess().getProcessName();
             setTextPaintStyle(paint, Paint.Align.LEFT, mOption.textColor, mOption.textSize);
-            float startY = mOption.chartHeaderHeight + mOption.processItemHeight * position;
             float rowHeight = paint.descent() - paint.ascent();
-            float realHeight = mOption.processItemHeight - PADDING * 2f;
+            float realHeight = mOption.processItemHeight * mTouchHelper.scaleFactor - PADDING * 2f;
             float realWidth = mOption.leftColumnWidth - PADDING * 2f;
-            float centerY = startY + mOption.processItemHeight * 0.5f;
+            float centerY = startY + mOption.processItemHeight * 0.5f * mTouchHelper.scaleFactor;
             int rowSumCount = (int) (realHeight / rowHeight);
             float textStartY = centerY - (rowHeight * rowSumCount * 0.5f);
             int index = 0;
 
             setLinePaintStyle(paint, mOption.lineColor, mOption.lineWidth);
-            drawBorder(canvas, paint, 0, startY, mOption.leftColumnWidth, startY + mOption.processItemHeight);
+            drawBorder(canvas, paint, 0, startY, mOption.leftColumnWidth, startY + mOption.processItemHeight * mTouchHelper.scaleFactor);
 
             for (int i = 0; i < rowSumCount; i++) {
                 int endIndex = paint.breakText(processName, false, realWidth, null);
@@ -556,17 +563,14 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
                 textStartY += rowHeight;
                 index += endIndex;
             }
-
         }
 
         private static final String PERCENT_END_FIX = "%";
 
         @Override
-        void drawRightColumn(Canvas canvas, Paint paint, int position, ProcessWrapper process) {
-            float startY = mOption.chartHeaderHeight + mOption.processItemHeight * position;
-            float endY = startY + mOption.processItemHeight;
+        void drawRightColumn(Canvas canvas, Paint paint, int position, ProcessWrapper process, float startY, float endY) {
             float middleX = mOption.width - mOption.rightColumnWidth * 0.5f;
-            float middleY = startY + mOption.processItemHeight * 0.5f;
+            float middleY = startY + mOption.processItemHeight * 0.5f * mTouchHelper.scaleFactor;
             float offsetX = mOption.rightColumnWidth * 0.25f;
             // border
             setLinePaintStyle(paint, mOption.lineColor, mOption.lineWidth);
@@ -575,7 +579,7 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
             drawVerticalLine(canvas, paint, startY, endY, middleX);
             // text
             setTextPaintStyle(paint, Paint.Align.CENTER, mOption.processNeedTextColor, mOption.processNeedTextSize);
-            CanvasUtil.drawText(canvas, paint,  + process.getNeedCompletePercent() * 100f + PERCENT_END_FIX, middleX - offsetX, middleY, CanvasUtil.BASELINE_MODE_CENTER);
+            CanvasUtil.drawText(canvas, paint, +process.getNeedCompletePercent() * 100f + PERCENT_END_FIX, middleX - offsetX, middleY, CanvasUtil.BASELINE_MODE_CENTER);
             paint.setColor(mOption.processCompleteTextColor);
             paint.setTextSize(mOption.processCompleteTextSize);
             CanvasUtil.drawText(canvas, paint, process.getProcess().getProcessAlreadyCompletePercent() * 100f + PERCENT_END_FIX, middleX + offsetX, middleY, CanvasUtil.BASELINE_MODE_CENTER);
@@ -598,10 +602,10 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
             float timeBarShowEndY = mOption.chartHeaderHeight;
             Calendar calendar = mTouchHelper.mCalendar;
             calendar.setTimeInMillis(mTouchHelper.getCurrentTime());
-            float timeBarItemStartX = timeBarShowStartX - mTouchHelper.getOffsetY();
+            float timeBarItemStartX = timeBarShowStartX - mTouchHelper.getOffsetX();
             float timeBarMonthStartX = timeBarItemStartX;
             float timeBarItemHeight = mOption.chartHeaderHeight * 0.5f;
-            float itemMiddleX = mOption.timeBarDayWidth * 0.5f;
+            float itemMiddleX = mOption.timeBarDayWidth * 0.5f * mTouchHelper.scaleFactor;
             float dayStartY = mOption.chartHeaderHeight * 0.75f;
             float monthStartY = mOption.chartHeaderHeight * 0.25f;
             canvas.save();
@@ -614,7 +618,7 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
             int curDay = calendar.get(Calendar.DAY_OF_MONTH);
             if (curDay > 1) {
                 // month content
-                drawMontContent(canvas, paint, calendar, timeBarMonthStartX, monthStartY);
+                drawMonthContent(canvas, paint, calendar, timeBarMonthStartX, monthStartY);
             }
             offsetDay = 0;
             while (timeBarItemStartX < timeBarShowEndX) {
@@ -622,7 +626,7 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
                 if (day == 1) {
                     timeBarMonthStartX = timeBarItemStartX;
                     // month content
-                    drawMontContent(canvas, paint, calendar, timeBarMonthStartX, monthStartY);
+                    drawMonthContent(canvas, paint, calendar, timeBarMonthStartX, monthStartY);
                     // split line
                     setLinePaintStyle(paint, mOption.headerLineColor, mOption.lineWidth);
                     drawVerticalLine(canvas, paint, 0, mOption.chartHeaderHeight, timeBarItemStartX);
@@ -632,10 +636,10 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
                     drawVerticalLine(canvas, paint, timeBarItemHeight, mOption.chartHeaderHeight, timeBarItemStartX);
                 }
                 // day content
-                setTextPaintStyle(paint, Paint.Align.CENTER, mOption.headerTextColor, mOption.timeBarDayTextSize);
+                setTextPaintStyle(paint, Paint.Align.CENTER, mOption.headerTextColor, mOption.timeBarDayTextSize * mTouchHelper.scaleFactor);
                 CanvasUtil.drawText(canvas, paint, day + DAY_END_FIX, timeBarItemStartX + itemMiddleX, dayStartY, CanvasUtil.BASELINE_MODE_CENTER);
                 calendar.add(Calendar.DAY_OF_MONTH, 1);
-                timeBarItemStartX += mOption.timeBarDayWidth;
+                timeBarItemStartX += mOption.timeBarDayWidth * mTouchHelper.scaleFactor;
                 offsetDay++;
             }
             canvas.restore();
@@ -644,10 +648,10 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
             drawBorder(canvas, paint, timeBarShowStartX, timeBarShowStartY, timeBarShowEndX, timeBarShowEndY);
         }
 
-        private void drawMontContent(Canvas canvas, Paint paint, Calendar calendar, float timeBarMonthStartX, float monthStartY) {
+        private void drawMonthContent(Canvas canvas, Paint paint, Calendar calendar, float timeBarMonthStartX, float monthStartY) {
             int currentDay = calendar.get(Calendar.DAY_OF_MONTH);
             int overDay = calendar.getMaximum(Calendar.DAY_OF_MONTH);
-            float monthEndX = Math.min(timeBarMonthStartX + (overDay - currentDay) * mOption.timeBarDayWidth, mOption.width - mOption.rightColumnWidth);
+            float monthEndX = Math.min(timeBarMonthStartX + (overDay - currentDay) * mOption.timeBarDayWidth * mTouchHelper.scaleFactor, mOption.width - mOption.rightColumnWidth);
             int month = calendar.get(Calendar.MONTH);
             int year = calendar.get(Calendar.YEAR);
             String monthText = year + YEAR_CHINESE + (month + 1) + MONTH_CHINESE;
@@ -657,48 +661,48 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
                 if (monthEndX == mOption.width - mOption.rightColumnWidth) {
                     // last month
                     align = Paint.Align.LEFT;
+                    setTextPaintStyle(paint, align, mOption.headerTextColor, mOption.timeBarDayTextSize);
+                    CanvasUtil.drawText(canvas, paint, monthText, timeBarMonthStartX, monthStartY, CanvasUtil.BASELINE_MODE_CENTER);
                 } else {
                     // first month
                     align = Paint.Align.RIGHT;
+                    setTextPaintStyle(paint, align, mOption.headerTextColor, mOption.timeBarDayTextSize);
+                    CanvasUtil.drawText(canvas, paint, monthText, monthEndX, monthStartY, CanvasUtil.BASELINE_MODE_CENTER);
                 }
 
-                setTextPaintStyle(paint, align, mOption.headerTextColor, mOption.timeBarDayTextSize);
-                CanvasUtil.drawText(canvas, paint, monthText, timeBarMonthStartX, monthStartY, CanvasUtil.BASELINE_MODE_CENTER);
+
             } else {
+
                 setTextPaintStyle(paint, Paint.Align.CENTER, mOption.headerTextColor, mOption.timeBarDayTextSize);
                 CanvasUtil.drawText(canvas, paint, monthText, timeBarMonthStartX + (monthEndX - timeBarMonthStartX) * 0.5f, monthStartY, CanvasUtil.BASELINE_MODE_CENTER);
             }
         }
 
         @Override
-        void drawProcessContent(Canvas canvas, Paint paint, int position, ProcessWrapper process) {
+        void drawProcessContent(Canvas canvas, Paint paint, int position, ProcessWrapper process, float startY, float endY) {
             canvas.save();
             float startX = mOption.leftColumnWidth - mTouchHelper.getScrollX();
-            float startY = mOption.chartHeaderHeight + mOption.processItemHeight * position;
             float endX = mOption.width - mOption.rightColumnWidth;
-            float endY = startY + mOption.processItemHeight;
-            float offsetY = mOption.processItemHeight * 0.25f;
-            // 裁剪边缘避免画出界
-            canvas.clipRect(startX, startY, endX, endY);
+            float offsetY = mOption.processItemHeight * 0.25f * mTouchHelper.scaleFactor;
+            float lineStartX = process.getBeginDay() * mOption.timeBarDayWidth * mTouchHelper.scaleFactor;
             canvas.translate(startX, startY + offsetY);
-            setLinePaintStyle(paint, mOption.processEstimateLineColor, mOption.processEstimateLineWidth);
-            drawHorizontalLine(canvas, paint, process.getBeginDay() * mOption.timeBarDayWidth, process.getEndDay() * mOption.timeBarDayWidth, 0);
+            setLinePaintStyle(paint, mOption.processEstimateLineColor, mOption.processEstimateLineWidth * mTouchHelper.scaleFactor);
+            drawHorizontalLine(canvas, paint, lineStartX, process.getEndDay() * mOption.timeBarDayWidth * mTouchHelper.scaleFactor, 0);
             canvas.translate(0, offsetY * 2f);
-            setLinePaintStyle(paint, mOption.processNeedLineColor, mOption.processNeedLineWidth);
-            drawHorizontalLine(canvas, paint, process.getBeginDay() * mOption.timeBarDayWidth, process.getNeedCompletePercentDays() * mOption.timeBarDayWidth, 0);
-            setLinePaintStyle(paint, mOption.processCompleteLineColor, mOption.processCompleteLineWidth);
-            drawHorizontalLine(canvas, paint, process.getBeginDay() * mOption.timeBarDayWidth, process.getAlreadyCompletePercentDays() * mOption.timeBarDayWidth, 0);
+            setLinePaintStyle(paint, mOption.processNeedLineColor, mOption.processNeedLineWidth * mTouchHelper.scaleFactor);
+            drawHorizontalLine(canvas, paint, lineStartX, process.getNeedCompletePercentDays() * mOption.timeBarDayWidth * mTouchHelper.scaleFactor, 0);
+            setLinePaintStyle(paint, mOption.processCompleteLineColor, mOption.processCompleteLineWidth * mTouchHelper.scaleFactor);
+            drawHorizontalLine(canvas, paint, lineStartX, process.getAlreadyCompletePercentDays() * mOption.timeBarDayWidth * mTouchHelper.scaleFactor, 0);
             canvas.restore();
             // 最后绘制边框，避免以上线覆盖
             setLinePaintStyle(paint, mOption.lineColor, mOption.lineWidth);
-            drawBorder(canvas, paint, startX, startY, endX, endY);
+            drawBorder(canvas, paint, mOption.leftColumnWidth, startY, endX, endY);
         }
 
         @Override
-        void drawProcessBackground(Canvas canvas, Paint paint, int position, ProcessWrapper process) {
+        void drawProcessBackground(Canvas canvas, Paint paint, int position, ProcessWrapper process, float startY, float endY) {
             setBackgroundPaintStyle(paint, position % 2 == 0 ? mOption.evenPositionBackgroundColor : mOption.oddPositionBackgroundColor);
-            float startY = mOption.chartHeaderHeight + mOption.processItemHeight * position;
-            canvas.drawRect(0, startY, mOption.width, startY + mOption.processItemHeight, paint);
+            canvas.drawRect(0, startY, mOption.width, endY, paint);
         }
 
         private void setDashLinePaintStyle(Paint paint, @ColorInt int lineColor, float lineWidth) {
@@ -718,9 +722,10 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
                 today = DateUtil.getDayFromDate(new Date(project.getToday().getTime()));
             }
 
-            float processListRealHeight = mOption.processItemHeight * project.getProcesses().size();
+            float processListRealHeight = mOption.processItemHeight * project.getProcesses().size() * mTouchHelper.scaleFactor;
             canvas.save();
-            canvas.translate(mOption.leftColumnWidth + (-mTouchHelper.getScrollX() + DateUtil.getDateDiff(project.getBeginTime(), today) + 1f) * mOption.timeBarDayWidth, mOption.chartHeaderHeight);
+            canvas.clipRect(mOption.leftColumnWidth, mOption.chartHeaderHeight, mOption.width - mOption.rightColumnWidth, mOption.chartHeaderHeight + processListRealHeight);
+            canvas.translate(mOption.leftColumnWidth + -mTouchHelper.getScrollX() + (DateUtil.getDateDiff(project.getBeginTime(), today) + 1f) * mOption.timeBarDayWidth * mTouchHelper.scaleFactor, mOption.chartHeaderHeight);
             setDashLinePaintStyle(paint, mOption.todayLineColor, mOption.lineWidth);
             canvas.drawLine(0, 0, 0, Math.min(mOption.processListHeight, processListRealHeight), paint);
             paint.reset();
@@ -738,20 +743,127 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
             float curY = 0f - mTouchHelper.getOffsetY();
             int index = curPosition;
             int size = processWrappers.size();
+            float scaleFactor = mTouchHelper.getScaleFactor();
             while (curY < mOption.processListHeight && index < size) {
                 ProcessWrapper processWrapper = processWrappers.get(index);
-                drawProcessBackground(canvas,paint,index,processWrapper);
-                drawLeftColumn(canvas,paint,index,processWrapper);
-                drawProcessContent(canvas,paint,index,processWrapper);
-                drawRightColumn(canvas,paint,index,processWrapper);
-                index ++;
-                curY += mOption.processItemHeight;
+                float startY = mOption.chartHeaderHeight + mOption.processItemHeight * scaleFactor * index - mTouchHelper.getScrollY() * scaleFactor;
+                float clipStartY = Math.max(startY, mOption.chartHeaderHeight);
+                float endY = startY + mOption.processItemHeight * scaleFactor;
+                float clipEndY = Math.min(endY, mOption.height);
+
+                canvas.save();
+                // 裁剪边缘避免画出界
+                canvas.clipRect(0, clipStartY, mOption.width, clipEndY);
+                drawProcessBackground(canvas, paint, index, processWrapper, startY, endY);
+                canvas.restore();
+                canvas.save();
+                canvas.clipRect(0, clipStartY, mOption.leftColumnWidth, clipEndY);
+                drawLeftColumn(canvas, paint, index, processWrapper, startY, endY);
+                canvas.restore();
+                canvas.save();
+                canvas.clipRect(mOption.leftColumnWidth, clipStartY, mOption.width - mOption.rightColumnWidth, clipEndY);
+                drawProcessContent(canvas, paint, index, processWrapper, startY, endY);
+                canvas.restore();
+                canvas.save();
+                canvas.clipRect(mOption.width - mOption.rightColumnWidth, clipStartY, mOption.width, clipEndY);
+                drawRightColumn(canvas, paint, index, processWrapper, startY, endY);
+                canvas.restore();
+                index++;
+                curY += mOption.processItemHeight * scaleFactor;
             }
         }
 
     }
 
+    public interface OnClickListener {
+        void onClick(int position, Project project, ProcessWrapper wrapper);
+    }
+
+    private OnClickListener mOnClickListener;
+
+    public void setOnClickListener(OnClickListener onClickListener) {
+        this.mOnClickListener = onClickListener;
+    }
+
+    private GestureDetector mGestureDetector;
+
+    private void initGestureDetector() {
+        mGestureDetector = new GestureDetector(getContext(), new GestureDetector.OnGestureListener() {
+            @Override
+            public boolean onDown(MotionEvent e) {
+                mTouchHelper.abortScroll();
+                return true;
+            }
+
+            @Override
+            public void onShowPress(MotionEvent e) {
+
+            }
+
+            @Override
+            public boolean onSingleTapUp(MotionEvent e) {
+                /**
+                 * 判断点击的是哪一个item，点击后触发listener
+                 */
+                int position = mTouchHelper.getIndexWithCoordinate(e.getX(), e.getY());
+                if (position != -1 && position < processWrappers.size()) {
+                    Log.e(TAG, "onClick" + position);
+                    if (mOnClickListener != null) {
+                        mOnClickListener.onClick(position, project, processWrappers.get(position));
+                    }
+                    return true;
+                }
+                return false;
+            }
+
+            @Override
+            public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+                mTouchHelper.scrollBy(distanceX * 0.5f, distanceY);
+                return true;
+            }
+
+            @Override
+            public void onLongPress(MotionEvent e) {
+                onSingleTapUp(e);
+            }
+
+            @Override
+            public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                Log.e(TAG, "onFling: vx:" + velocityX + ",vy:" + velocityY);
+                mTouchHelper.onFling((int) -velocityX, (int) -velocityY);
+                return true;
+            }
+        });
+    }
+
+    private ScaleGestureDetector mScaleGestureDetector;
+
+    private void initScaleGestureDetector() {
+        mScaleGestureDetector = new ScaleGestureDetector(getContext(), new ScaleGestureDetector.OnScaleGestureListener() {
+            @Override
+            public boolean onScale(ScaleGestureDetector detector) {
+                mTouchHelper.setScaleFactor(detector.getScaleFactor());
+                return true;
+            }
+
+            @Override
+            public boolean onScaleBegin(ScaleGestureDetector detector) {
+                return true;
+            }
+
+            @Override
+            public void onScaleEnd(ScaleGestureDetector detector) {
+
+            }
+
+
+        });
+    }
+
     private static class TouchHelper {
+
+        private static final float MIN_SCALE_FACTOR = 0.5f;
+        private static final float MAX_SCALE_FACTOR = 2.0f;
 
         private Calendar mCalendar;
 
@@ -789,15 +901,7 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
 
         private int processListSize;
 
-        private float maxScrollX;
-
-        private float maxScrollY;
-
-        private float minScrollX;
-
-        private float minScrollY;
-
-        private Scroller mScroller;
+        private float scaleFactor = 1.0f;
 
         private Date projectBeginTime;
 
@@ -805,11 +909,51 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
 
         private Option mOption;
 
+        private Scroller mScroller;
+
+
         public TouchHelper(Context context, Option option) {
             mCalendar = Calendar.getInstance();
             mScroller = new Scroller(context);
             mOption = option;
         }
+
+        int getIndexWithCoordinate(float x, float y) {
+            if (isInProcessListRange(x, y)) {
+                return (int) ((y - mOption.chartHeaderHeight + this.scrollY * scaleFactor) / (mOption.processItemHeight * scaleFactor));
+            } else {
+                return -1;
+            }
+        }
+
+
+        void checkScrollState() {
+            if (mScroller.computeScrollOffset()) {
+                scrollTo(mScroller.getCurrX(), mScroller.getCurrY());
+            }
+        }
+
+        void onFling(int vx, int vy) {
+            mScroller.fling((int) this.scrollX, (int) this.scrollY, vx, vy, (int) getMinScrollX(), (int) getMaxScrollX(), (int) getMinScrollY(), (int) getMaxScrollY());
+        }
+
+        void abortScroll() {
+            if (!mScroller.isFinished()) {
+                mScroller.abortAnimation();
+            }
+        }
+
+        /**
+         * 判断坐标是否在工序列表点击范围内
+         *
+         * @param x x轴坐标
+         * @param y y轴坐标
+         * @return is in range of process list
+         */
+        private boolean isInProcessListRange(float x, float y) {
+            return (x >= 0 && x <= mOption.width) && (y >= mOption.chartHeaderHeight && y <= mOption.height);
+        }
+
 
         public void setOption(Option option) {
             mOption = option;
@@ -836,38 +980,39 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
         public void scrollTo(float scrollX, float scrollY) {
             setScrollX(scrollX);
             setScrollY(scrollY);
+            Log.e(TAG, "scrollTo: maxScrollX:" + getMaxScrollX() + ",y:" + getMaxScrollY() + ",scx:" + scrollX + ",scy:" + scrollY);
         }
+
 
         public void refreshData(Project project) {
             sumDayInProject = DateUtil.getDateDiff(project.getEndTime(), project.getBeginTime());
             processListSize = project.getProcesses().size();
-            minScrollX = 0;
-            maxScrollX = sumDayInProject * mOption.timeBarDayWidth - mOption.timeBarWidth;
-            minScrollY = 0;
-            maxScrollY = processListSize * mOption.processItemHeight - mOption.processListHeight;
+            scaleFactor = 1.0f;
             projectBeginTime = DateUtil.getDayFromDate(project.getBeginTime());
             projectEndTime = DateUtil.getDayFromDate(project.getEndTime());
         }
 
         /**
-         * 根据scrollX 获取对应的 所在工程中天数
+         * 根据scrollX 获取时间轴起始点对应的 所在工程中天数
          *
          * @param scrollX x轴滚动值
          * @return 所在工程天数
          */
         public int getDayInProjectWithScrollX(float scrollX) {
-            return (int) getValueInRange(scrollX, 0, sumDayInProject);
+            int dayInProject = (int) (scrollX / mOption.timeBarDayWidth);
+            return (int) getValueInRange(dayInProject, 0, sumDayInProject);
         }
 
 
         /**
-         * 根据scrollY 获取对应的 所在processList中的index
+         * 根据scrollY 获取工序列表起始点对应的 所在processList中的index
          *
          * @param scrollY y轴滚动值
          * @return index in process list
          */
         public int getPositionInProcessListWithScrollY(float scrollY) {
-            return (int) getValueInRange(scrollY, 0, processListSize);
+            int position = (int) (scrollY / mOption.processItemHeight);
+            return (int) getValueInRange(position, 0, processListSize);
         }
 
         /**
@@ -908,7 +1053,7 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
          * @return scrollX minScrollX <= result <= maxScrollX
          */
         public float getScrollX(int dayInProject, float xInTimeBar) {
-            return getValueInRange(dayInProject * mOption.timeBarDayWidth - xInTimeBar, minScrollX, maxScrollX);
+            return getValueInRange(dayInProject * mOption.timeBarDayWidth - xInTimeBar, getMinScrollX(), getMaxScrollX());
         }
 
         /**
@@ -919,7 +1064,7 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
          * @return scrollY minScrollY <= result <= maxScrollY
          */
         public float getScrollY(int positionInProcessList, float yInProcessListView) {
-            return getValueInRange(positionInProcessList * mOption.processListHeight - yInProcessListView, minScrollY, maxScrollY);
+            return getValueInRange(positionInProcessList * mOption.processListHeight - yInProcessListView, getMinScrollY(), getMaxScrollY());
         }
 
 
@@ -928,8 +1073,16 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
         }
 
         public void setScrollX(float scrollX) {
-            this.scrollX = scrollX;
-            this.offsetX = this.scrollX - (long) this.scrollX;
+            this.scrollX = getValueInRange(scrollX , getMinScrollX(), getMaxScrollX());
+            this.offsetX = this.scrollX % (mOption.timeBarDayWidth * scaleFactor);
+        }
+
+        public void setScaleFactor(float scaleFactor) {
+            this.scaleFactor = getValueInRange(this.scaleFactor * scaleFactor, MIN_SCALE_FACTOR, MAX_SCALE_FACTOR);
+        }
+
+        public float getScaleFactor() {
+            return this.scaleFactor;
         }
 
         public float getScrollY() {
@@ -937,8 +1090,9 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
         }
 
         public void setScrollY(float scrollY) {
-            this.scrollY = scrollY;
-            this.offsetY = this.scrollY - (long) this.scrollY;
+            this.scrollY = getValueInRange(scrollY, getMinScrollY(), getMaxScrollY());
+            this.offsetY = this.scrollY % (mOption.processItemHeight * scaleFactor);
+            Log.e(TAG, "setScrollY: " + processListSize * mOption.processItemHeight * scaleFactor);
         }
 
         public float getOffsetX() {
@@ -950,6 +1104,23 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
             return offsetY;
         }
 
+        public float getMaxScrollX() {
+            // + 1是为了能看到结尾
+            return Math.max((sumDayInProject + 1) * mOption.timeBarDayWidth * scaleFactor - mOption.timeBarWidth, 0);
+        }
+
+        // TODO 可能计算错误
+        public float getMaxScrollY() {
+            return Math.max(processListSize * (mOption.processItemHeight * scaleFactor) - mOption.processListHeight, 0);
+        }
+
+        public float getMinScrollX() {
+            return 0;
+        }
+
+        public float getMinScrollY() {
+            return 0;
+        }
     }
 
 }
