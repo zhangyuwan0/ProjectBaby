@@ -1,7 +1,9 @@
 package com.baby.project.projectbaby.sign.bean;
 
+import android.os.Parcel;
+
 import com.avos.avoscloud.AVClassName;
-import com.avos.avoscloud.AVObject;
+import com.avos.avoscloud.AVUser;
 
 /**
  * 用户类，暂时未实现
@@ -10,7 +12,7 @@ import com.avos.avoscloud.AVObject;
  */
 
 @AVClassName("User")
-public class User extends AVObject {
+public class User extends AVUser {
 
     private static final String FIELD_ID_CARD = "id_card";
     private static final String FIELD_NAME = "name";
@@ -20,6 +22,17 @@ public class User extends AVObject {
     private static final String FIELD_CERTIFICATES = "certificates";
     private static final String FIELD_BIRTHDAY = "birthday";
     private static final String FIELD_AVATAR = "avatar";
+
+    //此处为我们的默认实现，当然你也可以自行实现
+    public static final Creator CREATOR = AVObjectCreator.instance;
+
+    // 必须向leanCloud提供的构造函数
+    public User() {}
+
+    // 实现Parcelable接口需提供的构造函数
+    public User(Parcel in){
+        super(in);
+    }
 
     public void setAvatar(String avatar) {
         this.put(FIELD_AVATAR, avatar);

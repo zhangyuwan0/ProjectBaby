@@ -31,6 +31,8 @@ public class App extends Application {
     public void onCreate() {
         super.onCreate();
         PushService.setDefaultChannelId(this, CHANNEL_ID);
+        // 批量注册lean cloud 的子类化
+        InitializeUtil.registerSubClasses();
         AVOSCloud.initialize(this,APP_ID,APP_KEY);
         // 启用崩溃错误统计
         AVAnalytics.enableCrashReport(this.getApplicationContext(), true);
