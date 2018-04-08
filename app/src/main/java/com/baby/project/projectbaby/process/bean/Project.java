@@ -1,5 +1,6 @@
 package com.baby.project.projectbaby.process.bean;
 
+import com.baby.project.projectbaby.sign.bean.User;
 import com.google.gson.annotations.SerializedName;
 
 import java.util.Date;

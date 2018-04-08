@@ -979,7 +979,6 @@ public class ProcessChartSurfaceView extends SurfaceView implements SurfaceHolde
         public void scrollTo(float scrollX, float scrollY) {
             setScrollX(scrollX);
             setScrollY(scrollY);
-            Log.e(TAG, "scrollTo: maxScrollX:" + getMaxScrollX() + ",y:" + getMaxScrollY() + ",scx:" + scrollX + ",scy:" + scrollY + "date:" + new Date(getCurrentTime()));
         }
 
 
