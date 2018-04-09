@@ -12,25 +12,19 @@ import android.os.Build;
 import android.os.Environment;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
-import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.WindowManager;
 
 import com.avos.avoscloud.AVAnalytics;
 import com.avos.avoscloud.AVException;
-import com.avos.avoscloud.AVFile;
 import com.avos.avoscloud.AVInstallation;
-import com.avos.avoscloud.AVLogger;
 import com.avos.avoscloud.AVOSCloud;
 import com.avos.avoscloud.AVObject;
 import com.avos.avoscloud.PushService;
-import com.avos.avoscloud.SaveCallback;
 import com.baby.project.projectbaby.sign.SplashActivity;
 import com.orhanobut.logger.AndroidLogAdapter;
 import com.orhanobut.logger.Logger;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -49,8 +43,8 @@ import java.util.Map;
 
 public class App extends Application implements Thread.UncaughtExceptionHandler {
 
-    private static final String APP_ID = "griPia4pQjpE141XAPML6fio-gzGzoHsz";
-    private static final String APP_KEY = "y8BRkphSQhDVhALOrgzf0vvk";
+    private static final String APP_ID = "jgsT284Unlqmm0BTPGm4x5mY-gzGzoHsz";
+    private static final String APP_KEY = "a6EyydDSqpe53P02Y43QRLye";
     public static final String CHANNEL_ID = "project_baby_push_channel_id";
 
     private static final String TAG = "ProjectBabyApplication";
@@ -69,7 +63,7 @@ public class App extends Application implements Thread.UncaughtExceptionHandler 
         Logger.addLogAdapter(new AndroidLogAdapter() {
             @Override
             public boolean isLoggable(int priority, @Nullable String tag) {
-                return ProjectBabyConfig.isDeveloperMode() || ProjectBabyConfig.isTesterMode();
+                return !ProjectBabyConfig.isDeveloperMode() || ProjectBabyConfig.isTesterMode();
             }
         });
         // 捕获异常
@@ -77,20 +71,19 @@ public class App extends Application implements Thread.UncaughtExceptionHandler 
         PushService.setDefaultChannelId(this, CHANNEL_ID);
         // 初始化leanCloud
         AVOSCloud.initialize(this, APP_ID, APP_KEY);
+        // 开启错误调试日志
+        // 放在 SDK 初始化语句 AVOSCloud.initialize() 后面，只需要调用一次即可
+        AVOSCloud.setDebugLogEnabled(true);
         // 批量注册lean cloud 的子类化
         InitializeUtil.registerSubClasses();
         // 保存installation信息
         AVInstallation.getCurrentInstallation().saveInBackground();
-        // 开启待机时推送自动唤醒
+//        // 开启待机时推送自动唤醒
         PushService.setAutoWakeUp(true);
         // 启动推送
-        PushService.setDefaultPushCallback(this, SplashActivity.class);
+//        PushService.setDefaultPushCallback(this, ProcessChartActivity.class);
         // 启用崩溃错误统计
         AVAnalytics.enableCrashReport(this.getApplicationContext(), true);
-        // 开启错误调试日志
-        // 放在 SDK 初始化语句 AVOSCloud.initialize() 后面，只需要调用一次即可
-        AVOSCloud.setDebugLogEnabled(true);
-
     }
 
     // -------------------异常捕获事件 + ---------------------------
@@ -102,9 +95,6 @@ public class App extends Application implements Thread.UncaughtExceptionHandler 
         } else {
             handleException(ex);
             restartAPP(ex);
-            // 保存日志文件
-            String fileName = saveCrashInfo2File(ex);
-
         }
         System.exit(0);
         System.gc();
@@ -126,7 +116,6 @@ public class App extends Application implements Thread.UncaughtExceptionHandler 
     private void restartAPP(Throwable ex) {
         Intent intent = new Intent(getApplicationContext(), SplashActivity.class);
         intent.putExtra(SplashActivity.KEY_ERROR_LOG, getErrorLog(ex));
-        intent.putExtra(SplashActivity.KEY_ERROR_LOG_FILE, saveCrashInfo2File(ex));
         PendingIntent restartIntent = PendingIntent.getActivity(
                 getApplicationContext(), 0, intent,
                 PendingIntent.FLAG_ONE_SHOT);
@@ -220,7 +209,7 @@ public class App extends Application implements Thread.UncaughtExceptionHandler 
      * @param ex
      * @return 返回文件名称, 便于将文件传送到服务器
      */
-        private String saveCrashInfo2File(Throwable ex) {
+    private String saveCrashInfo2File(Throwable ex) {
 
         try {
             long timestamp = System.currentTimeMillis();

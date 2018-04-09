@@ -16,8 +16,6 @@ import com.baby.project.projectbaby.base.receiver.ReceiverActionContract;
 
 public class ProcessChartActivity extends BaseActivity {
 
-
-
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

@@ -7,9 +7,9 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
-
     <!-- 基础模块 END -->
-
+    <!--在非activity中弹窗所需要的权限-->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
     <!-- Support Full Screen such as XIAOMI / HuaWei etc(it aspect radio is 18:9).
              Because there device's aspect radio are upper 2.051.
              So we just need to make it bigger than 2.1. -->
@@ -53,8 +53,7 @@
 
         <activity
             android:name=".sign.in.signInActivity"
-            android:launchMode="singleInstance"
-            android:theme="@style/Theme.AppCompat.NoActionBar">
+            android:launchMode="singleInstance">
         </activity>
 
         <!--TODO 需支持崩溃后重新启动APP-->
@@ -67,10 +66,11 @@
 
         </activity>
 
-        <activity android:name=".base.ErrorLogActivity"
-                  android:noHistory="true"
-                  android:screenOrientation="portrait"
-                  android:theme="@style/Theme.AppCompat.Dialog.Alert">
+        <activity
+            android:name=".base.ErrorLogActivity"
+            android:noHistory="true"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat.Dialog.Alert">
 
         </activity>
     </application>
