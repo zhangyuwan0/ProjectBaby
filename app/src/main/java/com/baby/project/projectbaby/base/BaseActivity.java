@@ -1,35 +1,28 @@
 package com.baby.project.projectbaby.base;
 
-import android.app.Dialog;
-import android.content.DialogInterface;
-import android.content.Intent;
+import android.content.Context;
 import android.content.IntentFilter;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.support.v4.content.LocalBroadcastManager;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.EditText;
 
-import com.avos.avoscloud.AVUser;
-import com.baby.project.projectbaby.MainActivity;
-import com.baby.project.projectbaby.R;
-import com.baby.project.projectbaby.base.event.ForceOfflineEvent;
 import com.baby.project.projectbaby.base.receiver.ForceOfflineReceiver;
 import com.baby.project.projectbaby.base.receiver.ReceiverActionContract;
 import com.baby.project.projectbaby.base.util.ActivityAndEventBusCollector;
-import com.project.baby.clouddialog.CloudDialog;
-import com.project.baby.clouddialog.CloudDialogListeners;
-
-import org.greenrobot.eventbus.EventBus;
-import org.greenrobot.eventbus.Subscribe;
-import org.greenrobot.eventbus.ThreadMode;
+import com.trello.rxlifecycle2.components.support.RxAppCompatActivity;
 
 /**
  * Activity基类
  * Created by yosemite on 2018/3/29.
  */
 
-public class BaseActivity extends AppCompatActivity {
+public class BaseActivity extends RxAppCompatActivity {
 
     private ForceOfflineReceiver mForceOfflineReceiver;
     protected LocalBroadcastManager mLocalBroadcastManager;
@@ -37,10 +30,6 @@ public class BaseActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // 注册EventBus
-        if (!EventBus.getDefault().isRegistered(this)) {
-            EventBus.getDefault().register(this);
-        }
         // 注册activity收集器
         ActivityAndEventBusCollector.register(this);
         // 本地广播 send force offline broadcast receiver
@@ -67,43 +56,55 @@ public class BaseActivity extends AppCompatActivity {
         }
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        // 取消注册EventBus
-        if (!EventBus.getDefault().isRegistered(this)) {
-            EventBus.getDefault().unregister(this);
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (ev.getAction() == MotionEvent.ACTION_DOWN) {
+
+            // 获得当前得到焦点的View，一般情况下就是EditText（特殊情况就是轨迹求或者实体案件会移动焦点）
+            View v = getCurrentFocus();
+
+            if (isShouldHideInput(v, ev)) {
+                hideSoftInput(v.getWindowToken());
+            }
         }
+        return super.dispatchTouchEvent(ev);
     }
 
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onEventMainThread(ForceOfflineEvent event) {
-        new CloudDialog.Builder(this, getSupportFragmentManager())
-                .isCustomDialog(false)
-                .setCancelable(false)
-                .setDialog(new CloudDialogListeners.OnCallDialogListener() {
-                    @Override
-                    public Dialog getDialog(Bundle savedInstanceState) {
-                        return new AlertDialog.Builder(BaseActivity.this)
-                                .setTitle(R.string.hint_text)
-                                .setMessage(R.string.force_offline_content_text)
-                                .setNegativeButton(R.string.confrim_text, new DialogInterface.OnClickListener() {
-                                    @Override
-                                    public void onClick(DialogInterface dialog, int which) {
-                                        dialog.dismiss();
-                                        // logout uer and clear cache
-                                        AVUser.logOut();
-                                        // exit app
-                                        ActivityAndEventBusCollector.finishAll();
-                                        Intent intent = new Intent();
-                                        intent.setClass(BaseActivity.this,MainActivity.class);
-                                        startActivity(intent);
-                                    }
-                                })
-                                .create();
-                    }
-                })
-                .show();
+    /**
+     * 根据EditText所在坐标和用户点击的坐标相对比，来判断是否隐藏键盘，因为当用户点击EditText时没必要隐藏
+     *
+     * @param v
+     * @param event
+     * @return
+     */
+    private boolean isShouldHideInput(View v, MotionEvent event) {
+        if (v != null && (v instanceof EditText)) {
+            int[] l = { 0, 0 };
+            v.getLocationInWindow(l);
+            int left = l[0], top = l[1], bottom = top + v.getHeight(), right = left
+                    + v.getWidth();
+            if (event.getX() > left && event.getX() < right
+                    && event.getY() > top && event.getY() < bottom) {
+                // 点击EditText的事件，忽略它。
+                return false;
+            } else {
+                return true;
+            }
+        }
+        // 如果焦点不是EditText则忽略，这个发生在视图刚绘制完，第一个焦点不在EditView上，和用户用轨迹球选择其他的焦点
+        return false;
+    }
+
+    /**
+     * 多种隐藏软件盘方法的其中一种
+     *
+     * @param token
+     */
+    private void hideSoftInput(IBinder token) {
+        if (token != null) {
+            InputMethodManager im = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            im.hideSoftInputFromWindow(token,
+                    InputMethodManager.HIDE_NOT_ALWAYS);
+        }
     }
 
 }

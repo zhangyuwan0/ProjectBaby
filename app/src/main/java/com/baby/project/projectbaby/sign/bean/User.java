@@ -22,16 +22,26 @@ public class User extends AVUser {
     private static final String FIELD_CERTIFICATES = "certificates";
     private static final String FIELD_BIRTHDAY = "birthday";
     private static final String FIELD_AVATAR = "avatar";
+    private static final String FIELD_INSTALLATION_ID = "installation_id";
 
     //此处为我们的默认实现，当然你也可以自行实现
     public static final Creator CREATOR = AVObjectCreator.instance;
 
     // 必须向leanCloud提供的构造函数
-    public User() {}
+    public User() {
+    }
 
     // 实现Parcelable接口需提供的构造函数
-    public User(Parcel in){
+    public User(Parcel in) {
         super(in);
+    }
+
+    public void setInstallationId(String installationId) {
+        this.put(FIELD_INSTALLATION_ID, installationId);
+    }
+
+    public String getInstallationId() {
+        return this.getString(FIELD_INSTALLATION_ID);
     }
 
     public void setAvatar(String avatar) {

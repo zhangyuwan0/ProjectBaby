@@ -16,6 +16,9 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    dataBinding {
+        enabled true
+    }
     //为了解决部分第三方库重复打包了META-INF的问题
     packagingOptions {
         exclude 'META-INF/LICENSE.txt'
@@ -23,6 +26,10 @@ android {
     }
     lintOptions {
         abortOnError false
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 }
 
@@ -34,13 +41,39 @@ dependencies {
     androidTestImplementation 'com.android.support.test:runner:1.0.1'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
     implementation files('libs/AMap2DMap_5.2.0_AMapLocation_3.8.0_20180201.jar')
-    implementation 'com.google.code.gson:gson:2.8.0'
+    implementation 'com.google.code.gson:gson:2.8.1'
     // LeanCloud 基础包
     implementation 'cn.leancloud.android:avoscloud-sdk:v4.6.4'
     // 推送与实时聊天需要的包
     implementation('cn.leancloud.android:avoscloud-push:v4.6.4@aar') { transitive = true }
     // LeanCloud 统计包
     implementation 'cn.leancloud.android:avoscloud-statistics:v4.6.4'
+    // cloudDialog
     implementation project(':clouddialog')
+    // eventBus
     implementation 'org.greenrobot:eventbus:3.1.1'
+    // Logger
+    implementation 'com.orhanobut:logger:2.2.0'
+    implementation 'io.reactivex.rxjava2:rxandroid:2.0.2'
+    // Because RxAndroid releases are few and far between, it is recommended you also
+    // explicitly depend on RxJava's latest version for bug fixes and new features.
+    // (see https://github.com/ReactiveX/RxJava/releases for latest 2.x.x version)
+    implementation 'io.reactivex.rxjava2:rxjava:2.1.12'
+    // If you want to bind to Android-specific lifecycles
+    compile 'com.trello.rxlifecycle2:rxlifecycle-android:2.2.1'
+    // If you want pre-written Activities and Fragments you can subclass as providers
+    compile 'com.trello.rxlifecycle2:rxlifecycle-components:2.2.1'
+    // If you want pre-written support preference Fragments you can subclass as providers
+    compile 'com.trello.rxlifecycle2:rxlifecycle-components-preference:2.2.1'
+}
+
+configurations.all {
+    resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+        def requested = details.requested
+        if (requested.group == 'com.android.support') {
+            if (!requested.name.startsWith("multidex")) {
+                details.useVersion '26.1.0'
+            }
+        }
+    }
 }
