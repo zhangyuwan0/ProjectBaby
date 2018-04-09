@@ -33,7 +33,7 @@ public class ProcessChartActivity extends BaseActivity {
     protected void onResume() {
         super.onResume();
         Intent intent = new Intent();
-        intent.setAction(ReceiverActionContract.FROCE_OFFLINE_REIVER_ACTION);
+        intent.setAction(ReceiverActionContract.FORCE_OFFLINE_REIVER_ACTION);
         mLocalBroadcastManager.sendBroadcast(intent);
     }
 }
