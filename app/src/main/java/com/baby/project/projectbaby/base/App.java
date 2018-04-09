@@ -1,11 +1,10 @@
-package com.baby.project.projectbaby;
+package com.baby.project.projectbaby.base;
 
 import android.annotation.SuppressLint;
 import android.app.Application;
 import android.os.Build;
 import android.support.annotation.RequiresApi;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.WindowManager;
 
 import com.avos.avoscloud.AVAnalytics;

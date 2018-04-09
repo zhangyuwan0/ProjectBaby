@@ -41,4 +41,6 @@ dependencies {
     implementation('cn.leancloud.android:avoscloud-push:v4.6.4@aar') { transitive = true }
     // LeanCloud 统计包
     implementation 'cn.leancloud.android:avoscloud-statistics:v4.6.4'
+    implementation project(':clouddialog')
+    implementation 'org.greenrobot:eventbus:3.1.1'
 }
