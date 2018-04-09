@@ -6,7 +6,6 @@ import android.content.Intent;
 
 import com.avos.avoscloud.AVUser;
 import com.baby.project.projectbaby.MainActivity;
-import com.baby.project.projectbaby.base.event.BaseEvent;
 import com.baby.project.projectbaby.base.event.ForceOfflineEvent;
 import com.baby.project.projectbaby.base.util.ActivityAndEventBusCollector;
 
@@ -20,10 +19,6 @@ public class ForceOfflineReceiver extends BroadcastReceiver{
     @Override
     public void onReceive(Context context, Intent intent) {
         // TODO 其他清理操作
-        // logout uer and clear cache
-        AVUser.logOut();
-        // exit app
-        ActivityAndEventBusCollector.finishAll();
         EventBus.getDefault().post(new ForceOfflineEvent());
     }
 }

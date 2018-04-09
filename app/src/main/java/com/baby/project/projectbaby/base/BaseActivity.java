@@ -10,6 +10,7 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 
+import com.avos.avoscloud.AVUser;
 import com.baby.project.projectbaby.MainActivity;
 import com.baby.project.projectbaby.R;
 import com.baby.project.projectbaby.base.event.ForceOfflineEvent;
@@ -83,21 +84,26 @@ public class BaseActivity extends AppCompatActivity {
                 .setDialog(new CloudDialogListeners.OnCallDialogListener() {
                     @Override
                     public Dialog getDialog(Bundle savedInstanceState) {
-                        return new AlertDialog.Builder(getBaseContext())
+                        return new AlertDialog.Builder(BaseActivity.this)
                                 .setTitle(R.string.hint_text)
                                 .setMessage(R.string.force_offline_content_text)
                                 .setNegativeButton(R.string.confrim_text, new DialogInterface.OnClickListener() {
                                     @Override
                                     public void onClick(DialogInterface dialog, int which) {
                                         dialog.dismiss();
-                                        Intent mainIntent = new Intent();
-                                        mainIntent.setClass(BaseActivity.this,MainActivity.class);
-                                        BaseActivity.this.startActivity(mainIntent);
+                                        // logout uer and clear cache
+                                        AVUser.logOut();
+                                        // exit app
+                                        ActivityAndEventBusCollector.finishAll();
+                                        Intent intent = new Intent();
+                                        intent.setClass(BaseActivity.this,MainActivity.class);
+                                        startActivity(intent);
                                     }
                                 })
                                 .create();
                     }
-                }).show();
+                })
+                .show();
     }
 
 }
