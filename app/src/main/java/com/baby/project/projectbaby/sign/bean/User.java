@@ -14,7 +14,7 @@ import com.avos.avoscloud.AVUser;
 @AVClassName("User")
 public class User extends AVUser {
 
-    private static final String FIELD_ID_CARD = "id_card";
+    private static final String FIELD_ID_CARD = "idCard";
     private static final String FIELD_NAME = "name";
     private static final String FIELD_SEX = "sex";
     private static final String FIELD_ETHNICITY = "ethnicity";
@@ -22,13 +22,14 @@ public class User extends AVUser {
     private static final String FIELD_CERTIFICATES = "certificates";
     private static final String FIELD_BIRTHDAY = "birthday";
     private static final String FIELD_AVATAR = "avatar";
-    private static final String FIELD_INSTALLATION_ID = "installation_id";
+    private static final String FIELD_INSTALLATION_ID = "installationId";
 
     //此处为我们的默认实现，当然你也可以自行实现
     public static final Creator CREATOR = AVObjectCreator.instance;
 
     // 必须向leanCloud提供的构造函数
     public User() {
+        super();
     }
 
     // 实现Parcelable接口需提供的构造函数

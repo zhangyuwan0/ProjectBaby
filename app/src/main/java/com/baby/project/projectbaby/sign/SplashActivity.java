@@ -1,12 +1,10 @@
 package com.baby.project.projectbaby.sign;
 
-import android.annotation.SuppressLint;
-import android.app.AlertDialog;
+import android.arch.lifecycle.AndroidViewModel;
+import android.arch.lifecycle.MutableLiveData;
 import android.os.Bundle;
-import android.os.Looper;
-import android.os.PersistableBundle;
 import android.support.annotation.Nullable;
-import android.util.Log;
+import android.view.Window;
 import android.view.WindowManager;
 import android.widget.TextView;
 
@@ -16,9 +14,10 @@ import com.avos.avoscloud.AVObject;
 import com.avos.avoscloud.SaveCallback;
 import com.baby.project.projectbaby.R;
 import com.baby.project.projectbaby.base.BaseActivity;
+import com.baby.project.projectbaby.sign.in.presenter.SignInPresenter;
+import com.baby.project.projectbaby.sign.in.view.SignInView;
 import com.orhanobut.logger.Logger;
 
-import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -29,12 +28,20 @@ import io.reactivex.schedulers.Schedulers;
 
 /**
  * 闪页
+ * auto login时
+ * 应该检查当前用户installation表中的信息与现在是否一致 不一致需要重新登录
+ * 还应检查当前用户的updateTime 超过7天为过期 需重新登录？
  * Created by yosemite on 2018/4/9.
  */
 
-public class SplashActivity extends BaseActivity {
+public class SplashActivity extends BaseActivity<SignInView, SignInPresenter> {
 
     public static final String KEY_ERROR_LOG = "key:error_log";
+
+    @Override
+    protected SignInPresenter createPresenter() {
+        return null;
+    }
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -44,20 +51,18 @@ public class SplashActivity extends BaseActivity {
         /*set it to be full screen*/
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        setContentView(R.layout.activity_main);
-        if (getIntent().hasExtra(KEY_ERROR_LOG)){
-            TextView textView = findViewById(R.id.tv_hello);
-            textView.setText(getIntent().getExtras().getString(KEY_ERROR_LOG));
-        }
+        setContentView(R.layout.activity_splash);
         handleErrorLog();
     }
 
-    @SuppressLint("CheckResult")
     private void handleErrorLog() {
-        Observable.just(getIntent().getExtras().getString(KEY_ERROR_LOG))
+        if (!getIntent().hasExtra(KEY_ERROR_LOG)){
+           return;
+        }
+
+        Observable.just(getIntent().getStringExtra(KEY_ERROR_LOG))
                 .observeOn(Schedulers.io())
                 .subscribeOn(Schedulers.io())
-                .compose(this.bindToLifecycle())
                 .flatMap((Function<String, ObservableSource<AVFile>>) errorLogContent -> {
                     long timestamp = System.currentTimeMillis();
                     String time = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss").format(new Date());
@@ -74,6 +79,7 @@ public class SplashActivity extends BaseActivity {
                         }
                     }));
                 })
+                .as(bindLifecycle())
                 .subscribe(avFile -> {
                     AVObject errorLog = new AVObject("error_log");
                     errorLog.put("fileName", avFile.getOriginalName());
@@ -81,7 +87,6 @@ public class SplashActivity extends BaseActivity {
                     errorLog.put("fileUrl", avFile.getUrl());
                     errorLog.saveInBackground();
                 }, throwable -> Logger.e(throwable.getMessage()));
-
     }
 
 

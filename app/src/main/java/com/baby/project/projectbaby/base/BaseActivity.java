@@ -14,26 +14,38 @@ import android.widget.EditText;
 
 import com.baby.project.projectbaby.base.receiver.ForceOfflineReceiver;
 import com.baby.project.projectbaby.base.receiver.ReceiverActionContract;
-import com.baby.project.projectbaby.base.util.ActivityAndEventBusCollector;
-import com.trello.rxlifecycle2.components.support.RxAppCompatActivity;
+import com.baby.project.projectbaby.base.util.ActivityCollector;
+import com.baby.project.projectbaby.base.util.RxLifecycleUtils;
+import com.uber.autodispose.AutoDisposeConverter;
 
 /**
  * Activity基类
  * Created by yosemite on 2018/3/29.
  */
 
-public class BaseActivity extends RxAppCompatActivity {
+public abstract class BaseActivity<V extends IView, P extends IPresenter<V>> extends AppCompatActivity {
 
     private ForceOfflineReceiver mForceOfflineReceiver;
     protected LocalBroadcastManager mLocalBroadcastManager;
+
+    private P presenter;
+
+    protected abstract P createPresenter();
+
+    protected P getPresenter() {
+        return this.presenter;
+    }
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         // 注册activity收集器
-        ActivityAndEventBusCollector.register(this);
+        ActivityCollector.register(this);
         // 本地广播 send force offline broadcast receiver
         mLocalBroadcastManager = LocalBroadcastManager.getInstance(this);
+//        this.presenter = createPresenter();
+        // 注册presenter为lifecycle observer
+//        getLifecycle().addObserver(getPresenter());
     }
 
     @Override
@@ -41,7 +53,7 @@ public class BaseActivity extends RxAppCompatActivity {
         super.onResume();
         // activity在栈顶，注册强制下线广播接收器
         IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(ReceiverActionContract.FORCE_OFFLINE_REIVER_ACTION);
+        intentFilter.addAction(ReceiverActionContract.FORCE_OFFLINE_RECEIVER_ACTION);
         mForceOfflineReceiver = new ForceOfflineReceiver();
         mLocalBroadcastManager.registerReceiver(mForceOfflineReceiver, intentFilter);
     }
@@ -54,6 +66,10 @@ public class BaseActivity extends RxAppCompatActivity {
             mLocalBroadcastManager.unregisterReceiver(mForceOfflineReceiver);
             mForceOfflineReceiver = null;
         }
+    }
+
+    protected <T> AutoDisposeConverter<T> bindLifecycle() {
+        return RxLifecycleUtils.bindLifecycle(this);
     }
 
     public boolean dispatchTouchEvent(MotionEvent ev) {
@@ -78,7 +94,7 @@ public class BaseActivity extends RxAppCompatActivity {
      */
     private boolean isShouldHideInput(View v, MotionEvent event) {
         if (v != null && (v instanceof EditText)) {
-            int[] l = { 0, 0 };
+            int[] l = {0, 0};
             v.getLocationInWindow(l);
             int left = l[0], top = l[1], bottom = top + v.getHeight(), right = left
                     + v.getWidth();
@@ -102,8 +118,7 @@ public class BaseActivity extends RxAppCompatActivity {
     private void hideSoftInput(IBinder token) {
         if (token != null) {
             InputMethodManager im = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-            im.hideSoftInputFromWindow(token,
-                    InputMethodManager.HIDE_NOT_ALWAYS);
+            im.hideSoftInputFromWindow(token, InputMethodManager.HIDE_NOT_ALWAYS);
         }
     }
 

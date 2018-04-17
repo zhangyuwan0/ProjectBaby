@@ -12,6 +12,7 @@ import android.os.Build;
 import android.os.Environment;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
+import android.support.multidex.MultiDex;
 import android.util.Log;
 
 import com.avos.avoscloud.AVAnalytics;
@@ -20,6 +21,7 @@ import com.avos.avoscloud.AVInstallation;
 import com.avos.avoscloud.AVOSCloud;
 import com.avos.avoscloud.AVObject;
 import com.avos.avoscloud.PushService;
+import com.baby.project.projectbaby.process.activity.ProcessChartActivity;
 import com.baby.project.projectbaby.sign.SplashActivity;
 import com.orhanobut.logger.AndroidLogAdapter;
 import com.orhanobut.logger.Logger;
@@ -69,21 +71,27 @@ public class App extends Application implements Thread.UncaughtExceptionHandler 
         // 捕获异常
         Thread.setDefaultUncaughtExceptionHandler(this);
         PushService.setDefaultChannelId(this, CHANNEL_ID);
+        // 批量注册lean cloud 的子类化 -- 需要在初始化之前注册
+        InitializeUtil.registerSubClasses();
         // 初始化leanCloud
         AVOSCloud.initialize(this, APP_ID, APP_KEY);
         // 开启错误调试日志
         // 放在 SDK 初始化语句 AVOSCloud.initialize() 后面，只需要调用一次即可
         AVOSCloud.setDebugLogEnabled(true);
-        // 批量注册lean cloud 的子类化
-        InitializeUtil.registerSubClasses();
         // 保存installation信息
         AVInstallation.getCurrentInstallation().saveInBackground();
-//        // 开启待机时推送自动唤醒
+        // 开启待机时推送自动唤醒
         PushService.setAutoWakeUp(true);
         // 启动推送
-//        PushService.setDefaultPushCallback(this, ProcessChartActivity.class);
+        PushService.setDefaultPushCallback(this, ProcessChartActivity.class);
         // 启用崩溃错误统计
         AVAnalytics.enableCrashReport(this.getApplicationContext(), true);
+    }
+
+    @Override
+    protected void attachBaseContext(Context base) {
+        super.attachBaseContext(base);
+        MultiDex.install(this);
     }
 
     // -------------------异常捕获事件 + ---------------------------

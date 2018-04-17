@@ -1,6 +1,7 @@
 <resources>
-    <string name="app_name">ProjectBaby</string>
+    <string name="app_name">工程宝</string>
     <string name="hint_text">提示</string>
     <string name="force_offline_content_text">您的账号已在另一台设备登录,请重新登录!</string>
-    <string name="confrim_text">确定</string>
+    <string name="confirm_text">确定</string>
+    <string name="activity_splash_iv_logo_content_description">logo</string>
 </resources>

@@ -13,7 +13,7 @@ import java.util.List;
 /**
  * Activity收集器，用于统一存放Activity并注册EventBus，以及作为应用的出口
  */
-public class ActivityAndEventBusCollector {
+public class ActivityCollector {
 
     public static List<LifecycleOwner> sActivities = new ArrayList<>();
 

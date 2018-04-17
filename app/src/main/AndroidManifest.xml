@@ -31,7 +31,7 @@
 
         <!-- 实时通信模块、推送（均需要加入以下声明） START -->
         <!-- 实时通信模块、推送都要使用 PushService -->
-        <service android:name="com.avos.avoscloud.PushService"/>
+        <service android:name="com.avos.avoscloud.PushService" android:exported="true"/>
 
         <receiver android:name="com.avos.avoscloud.AVBroadcastReceiver">
             <intent-filter>
@@ -40,19 +40,23 @@
                 <action android:name="android.net.conn.CONNECTIVITY_CHANGE"/>
             </intent-filter>
         </receiver>
+        <!--Push消息接收receiver-->
+        <receiver android:name=".base.receiver.CloudPushReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.USER_PRESENT" />
+                <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
+                <action android:name="com.baby.project.projectbaby.FORCE_OFFLINE" />
+            </intent-filter>
+        </receiver>
         <!-- 实时通信模块、推送 END -->
         <activity
             android:name=".process.activity.ProcessChartActivity"
             android:theme="@style/Theme.AppCompat.NoActionBar">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-
-                <category android:name="android.intent.category.LAUNCHER"/>
-            </intent-filter>
         </activity>
 
         <activity
-            android:name=".sign.in.signInActivity"
+            android:name=".sign.in.SignInActivity"
             android:launchMode="singleInstance">
         </activity>
 
@@ -64,6 +68,10 @@
             android:screenOrientation="portrait"
             android:theme="@style/Theme.AppCompat.NoActionBar">
 
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
         </activity>
 
         <activity

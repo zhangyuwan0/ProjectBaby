@@ -31,4 +31,5 @@ public class CustomLifecycleObserverAdapter implements LifecycleObserver {
     @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
     void onDestroy(@NonNull LifecycleOwner lifecycleOwner) {
     }
+
 }

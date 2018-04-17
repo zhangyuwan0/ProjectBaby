@@ -35,9 +35,6 @@ public class Project {
     @SerializedName(FIELD_PROJECT_DESCRIBE)
     private String describe;         // 工程描述
 
-    @SerializedName(FIELD_PROJECT_VERSION)
-    private ProjectVersion version; // 工程版本信息
-
     @SerializedName(FIELD_PROJECT_BEGIN_TIME)
     private Date beginTime;         // 工程开工时间
 
@@ -111,14 +108,6 @@ public class Project {
 
     public void setShutdownMessages(List<ShutdownMessage> shutdownMessages) {
         this.shutdownMessages = shutdownMessages;
-    }
-
-    public ProjectVersion getVersion() {
-        return version;
-    }
-
-    public void setVersion(ProjectVersion version) {
-        this.version = version;
     }
 
     public List<Process> getProcesses() {
